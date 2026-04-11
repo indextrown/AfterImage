@@ -1,0 +1,53 @@
+name: 빌드 및 테스트 검증
+
+on:
+  # main 브랜치로 PR을 열거나 업데이트할 때 실행
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 같은 브랜치에서 이전 CI가 아직 돌고 있는데 새 커밋이 올라오면, 이전 실행을 취소하고 최신 커밋 기준으로 다시 실행하도록 설정
+concurrency:
+  group: build-and-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select iOS Simulator
+        id: simulator
+        run: |
+          DESTINATION=$(xcrun simctl list devices available -j | jq -r '
+            [.devices[]?[] | select(.name | startswith("iPhone"))][0] |
+            "platform=iOS Simulator,id=\(.udid)"
+          ')
+
+          if [ -z "$DESTINATION" ] || [ "$DESTINATION" = "platform=iOS Simulator,id=null" ]; then
+            echo "No available iPhone simulator found."
+            exit 1
+          fi
+
+          echo "destination=$DESTINATION" >> "$GITHUB_OUTPUT"
+          echo "Selected destination: $DESTINATION"
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -scheme AfterImage \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Test
+        run: |
+          xcodebuild \
+            -scheme AfterImage \
+            -destination '${{ steps.simulator.outputs.destination }}' \
+            CODE_SIGNING_ALLOWED=NO \
+            test
