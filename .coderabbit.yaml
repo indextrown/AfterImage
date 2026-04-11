@@ -1,0 +1,101 @@
+language: "ko-KR"
+
+early_access: false
+
+tone_instructions: >
+  AfterImage는 iOS용 Swift 이미지 캐시/파이프라인 라이브러리입니다. 리뷰는 친절하지만 정확하게, 캐시 정책의 예측 가능성,
+  동시성 안정성, API 사용성, 테스트 가능성을 우선해 작성하세요. 칭찬은 짧게, 개선 제안은 근거와 함께 구체적으로 남겨주세요.
+
+reviews:
+  profile: "chill"
+
+  review_status: false
+  commit_status: false
+  in_progress_fortune: false
+  request_changes_workflow: false
+
+  high_level_summary: true
+  changed_files_summary: false
+  sequence_diagrams: false
+  assess_linked_issues: true
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  poem: false
+
+  path_instructions:
+    - path: Sources/**/*.swift
+      instructions: |
+        [AfterImage 라이브러리 리뷰 기준]
+        1. 이 프로젝트는 iOS 13+ Swift Package 기반 이미지 캐시/이미지 파이프라인 라이브러리입니다.
+        2. 앱 전용 구현보다 재사용 가능한 라이브러리 API인지, public/internal 경계가 적절한지 우선 검토해주세요.
+        3. 공개 API는 작고 설명 가능해야 하며, URL-only helper보다 ImageRequest / CacheKey / ImagePipeline 같은 코어 모델 중심 설계를 선호합니다.
+        4. UIKit 의존성(UIImage 등)은 iOS 라이브러리로서 자연스럽지만, 코어 로직과 UI 어댑터 책임이 섞이지 않았는지 확인해주세요.
+
+        [Caching]
+        5. 메모리 캐시는 예측 가능한 eviction 정책을 유지해야 합니다. LRU 순서, hit 시 MRU 이동, cost/count limit 처리, 제거 순서가 명확한지 확인해주세요.
+        6. 디스크 캐시는 파일명 안전성, TTL, size/count limit, corrupted file 처리, 원자적 write 가능성을 검토해주세요.
+        7. 같은 URL이라도 target size, scale, resize mode, processor chain, cache policy가 다르면 다른 variant key가 되어야 하는지 확인해주세요.
+        8. 캐시 hit/miss 흐름이 memory -> disk -> network -> decode/process -> cache write 순서로 예측 가능하게 유지되는지 검토해주세요.
+
+        [Concurrency]
+        9. actor, lock, async/await 사용이 책임에 맞는지 검토해주세요. 파이프라인/디스크 I/O는 직렬화가 필요한 상태를 안전하게 다뤄야 합니다.
+        10. in-flight request dedupe가 race condition 없이 동작하는지, 실패/취소 시 pending task가 누수되지 않는지 확인해주세요.
+        11. lock 기반 코드가 생기면 critical section이 짧고 deadlock 가능성이 없는지, Sendable 경고를 억지로 숨기지 않았는지 검토해주세요.
+        12. UI 업데이트나 UIImage 처리처럼 메인 스레드 제약이 있는 코드가 있다면 MainActor 경계가 명확한지 확인해주세요.
+
+        [Image Pipeline]
+        13. 네트워크 다운로드, 디코딩, 다운샘플링, processor 적용, 캐시 저장 책임이 한 타입에 과도하게 몰리지 않았는지 확인해주세요.
+        14. 큰 이미지를 그대로 메모리에 올리는 구현이 생기면 downsampling/decoded image cost 관점에서 문제를 지적해주세요.
+        15. 에러 모델은 네트워크 실패, 디코딩 실패, 캐시 I/O 실패를 구분해 호출자가 대응할 수 있는지 검토해주세요.
+
+    - path: Tests/**/*.swift
+      instructions: |
+        1. 구현 디테일보다 라이브러리 계약과 사용자 관점의 결과를 검증하는지 확인해주세요.
+        2. MemoryCache 테스트는 LRU ordering, hit 후 MRU 이동, cost/count eviction, remove/removeAll 동작을 확인해야 합니다.
+        3. DiskCache 테스트는 TTL expiration, size/count eviction, corrupted file handling, 파일명 안전성을 다루는지 확인해주세요.
+        4. ImagePipeline 테스트는 memory hit short-circuit, disk hit 후 memory repopulate, in-flight dedupe, decode failure, cache policy 차이를 검증해야 합니다.
+        5. 비동기 테스트는 sleep 기반보다 clock, stub loader, temporary directory 등 결정적인 테스트 도구를 선호해주세요.
+
+    - path: Package.swift
+      instructions: |
+        1. iOS 13+ Swift Package 라이브러리로 배포 가능한 구조인지 확인해주세요.
+        2. product / target / testTarget 구성이 명확한지, 불필요한 dependency가 추가되지 않았는지 검토해주세요.
+        3. UIKit/ImageIO 등 Apple framework 사용이 target platform과 맞는지 확인해주세요.
+
+    - path: .github/workflows/**/*.yml
+      instructions: |
+        1. AfterImage는 UIKit을 사용하는 iOS 패키지이므로 macOS runner와 xcodebuild 기반 검증이 적절한지 확인해주세요.
+        2. swift test만 사용하면 UIKit 모듈 문제로 실패할 수 있으니 iOS Simulator 대상 테스트인지 검토해주세요.
+        3. 특정 Simulator 이름/OS 버전에 과하게 의존하지 않는지, CI에서 안정적으로 재현 가능한 destination을 쓰는지 확인해주세요.
+        4. PR/push 트리거, concurrency, code signing 비활성화 등 CI 안정성 설정을 검토해주세요.
+
+    - path: "**/*.md"
+      instructions: |
+        1. README와 ARCHITECTURE 문서가 실제 구현 방향과 모순되지 않는지 확인해주세요.
+        2. AfterImage의 핵심 방향인 predictable caching, request-aware pipeline, decode/downsampling, core-first architecture가 흐려지지 않는지 검토해주세요.
+        3. 아직 구현되지 않은 기능을 완성된 기능처럼 과장하지 않도록 지적해주세요.
+
+  auto_review:
+    enabled: true
+    drafts: true
+    auto_incremental_review: true
+
+chat:
+  auto_reply: false
+
+knowledge_base:
+  web_search:
+    enabled: true
+
+  learnings:
+    scope: local
+
+  issues:
+    scope: local
+
+  pull_requests:
+    scope: local
