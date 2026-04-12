@@ -86,8 +86,10 @@ public final class LRUMemoryCache<
     private var tail: Node? // 가장 오래 사용하지 않은 노드
     
     public init(countLimit: Int, totalCostLimit: Int) {
-        self.countLimit = max(1, countLimit)
-        self.totalCostLimit = max(1, totalCostLimit)
+        precondition(countLimit > 0, "countLinit must be greater than 0")
+        precondition(totalCostLimit > 0, "totalCostLimit must be greater than 0")
+        self.countLimit = countLimit
+        self.totalCostLimit = totalCostLimit
     }
 }
 
@@ -257,6 +259,7 @@ public extension LRUMemoryCache where Key == URL, Value == UIImage {
     /// UIImage의 메모리 사용량을 바이트 단위로 계산합니다.
     ///
     /// - Note:
+    /// (Legacy)
     ///   - `UIImage.size`는 point 단위이므로, 실제 픽셀 수를 구하기 위해 `scale`을 곱합니다.
     ///   - 픽셀 수 = (width * scale) × (height * scale)
     ///   - 일반적으로 디코딩된 이미지는 RGBA(4byte per pixel) 포맷을 사용한다고 가정합니다.
@@ -271,10 +274,32 @@ public extension LRUMemoryCache where Key == URL, Value == UIImage {
     /// - Parameters:
     ///   - image: 캐시에 저장할 UIImage
     ///   - key: 이미지 식별을 위한 URL 키
+    ///
+    
+    
+    /// UIImage의 메모리 사용량을 바이트 단위로 계산합니다.
+    ///
+    /// - Note:
+    ///   - 실제 메모리 사용량은 `cgImage`의 픽셀 크기를 기준으로 계산합니다.
+    ///   - `cgImage.width`와 `cgImage.height`는 실제 픽셀 수를 나타냅니다.
+    ///   - 일반적으로 디코딩된 이미지는 RGBA(4 byte per pixel) 포맷을 사용한다고 가정합니다.
+    ///   - 최종 cost = width × height × 4 (근사값)
+    ///
+    /// - Example:
+    ///   - cgImage.width: 300, cgImage.height: 300
+    ///   - → cost: 300 × 300 × 4 = 360,000 bytes
+    ///
+    /// - Parameters:
+    ///   - image: 캐시에 저장할 UIImage
+    ///   - key: 이미지 식별을 위한 URL 키
     func insertImage(_ image: UIImage, key: URL) {
         
-        // 실제 픽셀 기반 메모리 사용량(근사값) 계산
-        let cost = Int((image.size.width * image.scale) * (image.size.height * image.scale) * 4)
+        guard let cgimage = image.cgImage else { return }
+        
+        let width = cgimage.width
+        let height = cgimage.height
+        let cost = width * height * 4
+        
         insert(value: image, key: key, cost: cost)
     }
 }
