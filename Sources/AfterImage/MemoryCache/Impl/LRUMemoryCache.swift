@@ -32,19 +32,38 @@ public final class LRUMemoryCache<
     }
     
     private let lock = NSLock()
-    private let countLimit: Int     // 캐시에 들어갈 아이템 개수 제한(개)
-    private let totalCostLimit: Int // 캐시에 저장된 메모리 크기 제한(byte)
+    private let configuration: MemoryCacheConfiguration
+    // private let countLimit: Int     // 캐시에 들어갈 아이템 개수 제한(개)
+    // private let totalCostLimit: Int // 캐시에 저장된 메모리 크기 제한(byte)
     
     private var nodes: [Key: Node] = [:] // key로 노드를 바로 찾기 위함
     private var totalCost = 0
     private var head: Node? // 가장 최근 사용한 노드
     private var tail: Node? // 가장 오래 사용하지 않은 노드
     
-    public init(countLimit: Int, totalCostLimit: Int) {
-        precondition(countLimit > 0, "countLinit must be greater than 0")
-        precondition(totalCostLimit > 0, "totalCostLimit must be greater than 0")
-        self.countLimit = countLimit
-        self.totalCostLimit = totalCostLimit
+    
+    /// 메모리 캐시 정책을 담은 configuration을 사용해 LRU 메모리 캐시를 생성합니다.
+    ///
+    /// - Parameter configuration:
+    ///   캐시의 최대 개수(`countLimit`)와 총 cost 제한(`totalCostLimit`)을 정의한 설정값
+    public init(configuration: MemoryCacheConfiguration) {
+        self.configuration = configuration
+    }
+    
+    /// 저장 개수 제한과 전체 cost 제한을 직접 지정해 LRU 메모리 캐시를 생성합니다.
+    ///
+    /// - Parameters:
+    ///   - countLimit: 캐시에 저장할 수 있는 최대 항목 개수입니다.
+    ///   - totalCostLimit: 캐시에 저장할 수 있는 전체 최대 cost 값입니다.
+    public convenience init(
+        countLimit: Int,
+        totalCostLimit: Int
+    ) {
+        let configuration = MemoryCacheConfiguration(
+            countLimit: countLimit,
+            totalCostLimit: totalCostLimit
+        )
+        self.init(configuration: configuration)
     }
 }
 
@@ -128,7 +147,8 @@ extension LRUMemoryCache {
     ///   - 평균적으로 각 제거는 O(1)
     ///   - 한 번의 eviction 과정에서 여러 노드를 제거할 수 있어 최악의 경우 O(n)
     private func evictIfNeeded() {
-        while nodes.count > countLimit || totalCost > totalCostLimit {
+        while nodes.count > configuration.countLimit ||
+                totalCost > configuration.totalCostLimit {
             guard let leastRecentlyUsedNode = tail else {
                 return
             }
