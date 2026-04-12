@@ -111,3 +111,7 @@ jobs:
               issue_number: context.issue.number,
               body: message
             });
+
+      - name: Fail workflow when build or test failed
+        if: ${{ always() && (steps.build_step.outcome != 'success' || (steps.build_step.outcome == 'success' && steps.test_step.outcome != 'success')) }}
+        run: exit 1
