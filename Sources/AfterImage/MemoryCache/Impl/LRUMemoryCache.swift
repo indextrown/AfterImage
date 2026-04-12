@@ -63,6 +63,11 @@ public final class LRUMemoryCache<
         )
         self.init(configuration: configuration)
     }
+    
+    /// 기본 설정으로 생성 가능한 이니셜라이저
+    public convenience init() {
+        self.init(configuration: MemoryCacheConfiguration())
+    }
 }
 
 // MARK: - Private
