@@ -285,6 +285,11 @@ public extension LRUMemoryCache where Key == URL, Value == UIImage {
     ///   - 일반적으로 디코딩된 이미지는 RGBA(4 byte per pixel) 포맷을 사용한다고 가정합니다.
     ///   - 최종 cost = width × height × 4 (근사값)
     ///
+    /// - Note:
+    ///   - 현재는 URL 기반의 단순 이미지 캐시를 사용합니다.
+    ///   - 향후 target size, scale, processor 등 variant를 구분해야 하는 경우
+    ///     별도의 CacheKey 모델로 확장할 수 있습니다.
+    ///
     /// - Example:
     ///   - cgImage.width: 300, cgImage.height: 300
     ///   - → cost: 300 × 300 × 4 = 360,000 bytes
