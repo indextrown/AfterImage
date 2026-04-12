@@ -16,12 +16,10 @@ import Foundation
 /// 동시성 환경에서도 안전하게 전달할 수 있도록 `Sendable`을 채택합니다.
 public struct MemoryCacheConfiguration: Sendable {
     
-    /// 캐시에 저장할 수 있는 최대 항목 개수입니다.
+    /// 캐시에 저장할 수 있는 최대 아이템 개수입니다.
     public let countLimit: Int
     
-    /// 캐시에 저장할 수 있는 전체 비용의 최대 한도입니다.
-    ///
-    /// 일반적으로 바이트 단위의 메모리 비용을 의미합니다.
+    /// 캐시에 저장할 수 있는 최대 메모리 크기 입니다. (byte)
     public let totalCostLimit: Int
     
     /// 메모리 캐시 설정값을 생성합니다.

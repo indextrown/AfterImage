@@ -33,8 +33,6 @@ public final class LRUMemoryCache<
     
     private let lock = NSLock()
     private let configuration: MemoryCacheConfiguration
-    // private let countLimit: Int     // 캐시에 들어갈 아이템 개수 제한(개)
-    // private let totalCostLimit: Int // 캐시에 저장된 메모리 크기 제한(byte)
     
     private var nodes: [Key: Node] = [:] // key로 노드를 바로 찾기 위함
     private var totalCost = 0
