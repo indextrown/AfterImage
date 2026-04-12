@@ -16,6 +16,9 @@ on:
 jobs:
   # ✅ 이슈 번호 기반 브랜치를 생성하는 작업
   create_issue_branch_job:
+    if: >
+      github.event_name == 'issues' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request == null)
     runs-on: ubuntu-latest # GitHub에서 제공하는 Ubuntu 가상 환경에서 실행
     steps:
       - name: Create Issue Branch # 스텝 이름
@@ -25,7 +28,9 @@ jobs:
 
   # ✅ PR이 병합되었을 경우 자동으로 브랜치 삭제하는 작업
   delete_merged_branch:
-    if: github.event.pull_request.merged == true # PR이 머지된 경우에만 실행
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Delete Merged Branch # 스텝 이름
