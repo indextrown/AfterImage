@@ -15,6 +15,10 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: macos-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Checkout
@@ -37,6 +41,8 @@ jobs:
           echo "Selected destination: $DESTINATION"
 
       - name: Build
+        id: build_step
+        continue-on-error: true
         run: |
           xcodebuild \
             -scheme AfterImage \
@@ -45,9 +51,68 @@ jobs:
             build
 
       - name: Test
+        id: test_step
+        if: ${{ steps.build_step.outcome == 'success' }}
+        continue-on-error: true
         run: |
           xcodebuild \
             -scheme AfterImage \
             -destination '${{ steps.simulator.outputs.destination }}' \
             CODE_SIGNING_ALLOWED=NO \
             test
+
+      - name: Comment PR result
+        if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const build = '${{ steps.build_step.outcome }}';
+            const test = '${{ steps.test_step.outcome }}';
+
+            const workflow = context.workflow;
+            const branch = context.payload.pull_request.head.ref;
+            const commit = context.payload.pull_request.head.sha.substring(0, 7);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            let message = '';
+
+            if (build !== 'success') {
+              message = [
+                `❌ @${context.actor} 빌드 CI가 실패했습니다.`,
+                '',
+                `- Workflow: ${workflow}`,
+                `- Branch: ${branch}`,
+                `- Commit: ${commit}`,
+                `- Run: ${runUrl}`
+              ].join('\n');
+            } else if (test !== 'success') {
+              message = [
+                `❌ @${context.actor} 테스트 CI가 실패했습니다.`,
+                '',
+                `- Workflow: ${workflow}`,
+                `- Branch: ${branch}`,
+                `- Commit: ${commit}`,
+                `- Run: ${runUrl}`
+              ].join('\n');
+            } else {
+              message = [
+                `✅ @${context.actor} 빌드 및 테스트 CI가 성공했습니다.`,
+                '',
+                `- Workflow: ${workflow}`,
+                `- Branch: ${branch}`,
+                `- Commit: ${commit}`,
+                `- Run: ${runUrl}`
+              ].join('\n');
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message
+            });
+
+      - name: Fail workflow when build or test failed
+        if: ${{ always() && (steps.build_step.outcome != 'success' || (steps.build_step.outcome == 'success' && steps.test_step.outcome != 'success')) }}
+        run: exit 1
