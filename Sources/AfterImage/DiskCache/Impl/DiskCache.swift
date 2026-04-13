@@ -48,7 +48,7 @@ public actor DiskCache: DiskCacheType {
     }
     
     /// 디스크 캐시 저장 위치와 정책을 담은 설정값입니다.
-    private let configuuration: DiskCacheConfiguration
+    private let configuration: DiskCacheConfiguration
     
     /// 파일 생성, 삭제, 디렉터리 탐색을 담당하는 파일 매니저입니다.
     private let fileManager: FileManager
@@ -56,14 +56,14 @@ public actor DiskCache: DiskCacheType {
     /// 디스크 캐시를 생성합니다.
     ///
     /// - Parameters:
-    ///   - configuuration: 저장 디렉터리, TTL, 개수 제한, 용량 제한을 포함한 캐시 설정입니다.
+    ///   - configuration: 저장 디렉터리, TTL, 개수 제한, 용량 제한을 포함한 캐시 설정입니다.
     ///   - fileManager: 파일 시스템 접근에 사용할 `FileManager`입니다.
     ///                  테스트 시 커스텀 인스턴스를 주입할 수 있습니다.
     public init(
-        configuuration: DiskCacheConfiguration,
+        configuration: DiskCacheConfiguration,
         fileManager: FileManager = .default
     ) {
-        self.configuuration = configuuration
+        self.configuration = configuration
         self.fileManager = fileManager
     }
 }
@@ -77,12 +77,12 @@ extension DiskCache {
     ///
     /// - Throws: 디렉터리 생성 중 오류가 발생하면 throw합니다.
     private func createDirectoryIfNeeded() throws {
-        guard !fileManager.fileExists(atPath: configuuration.directoryURL.path) else {
+        guard !fileManager.fileExists(atPath: configuration.directoryURL.path) else {
             return
         }
         
         try fileManager.createDirectory(
-            at: configuuration.directoryURL,
+            at: configuration.directoryURL,
             withIntermediateDirectories: true
         )
     }
@@ -104,7 +104,7 @@ extension DiskCache {
     /// - Parameter fileName: 확장자를 제외한 베이스 파일명입니다.
     /// - Returns: `.data` 확장자를 갖는 실제 데이터 파일 URL입니다.
     private func dataURL(fileName: String) -> URL {
-        configuuration.directoryURL
+        configuration.directoryURL
             .appendingPathComponent(fileName)
             .appendingPathExtension("data")
     }
@@ -114,7 +114,7 @@ extension DiskCache {
     /// - Parameter fileName: 확장자를 제외한 베이스 파일명입니다.
     /// - Returns: `.json` 확장자를 갖는 메타데이터 파일 URL입니다.
     private func metadataURL(fileName: String) -> URL {
-        configuuration.directoryURL
+        configuration.directoryURL
             .appendingPathComponent(fileName)
             .appendingPathExtension("json")
     }
@@ -175,17 +175,19 @@ extension DiskCache {
     
     /// 캐시 디렉터리 안의 모든 메타데이터 파일을 읽어 배열로 반환합니다.
     ///
-    /// 손상된 메타데이터 파일이 발견되면 해당 파일은 조용히 제거하고 넘어갑니다.
+    /// 손상된 메타데이터 파일이 발견되면,
+    /// 해당 메타데이터와 연결된 데이터 파일까지 함께 제거해
+    /// orphan 파일이 남지 않도록 정리합니다.
     ///
     /// - Returns: 현재 디스크 캐시에 남아 있는 메타데이터 목록입니다.
     /// - Throws: 디렉터리 조회 실패 시 오류를 throw합니다.
     private func loadAllMetadata() throws -> [MetaData] {
-        guard fileManager.fileExists(atPath: configuuration.directoryURL.path) else {
+        guard fileManager.fileExists(atPath: configuration.directoryURL.path) else {
             return []
         }
         
         let urls = try fileManager.contentsOfDirectory(
-            at: configuuration.directoryURL,
+            at: configuration.directoryURL,
             includingPropertiesForKeys: nil
         )
         
@@ -196,7 +198,8 @@ extension DiskCache {
                 let metadata = try loadMetadata(url: url)
                 metadataList.append(metadata)
             } catch {
-                try? fileManager.removeItem(at: url)
+                let fileName = url.deletingPathExtension().lastPathComponent
+                try? removeFiles(fileName: fileName)
             }
         }
         
@@ -226,8 +229,8 @@ extension DiskCache {
             $0.lastAccessedAt < $1.lastAccessedAt
         }
         
-        while remainingMetadata.count > configuuration.countLimit ||
-              totalSize > configuuration.totalSizeLimit {
+        while remainingMetadata.count > configuration.countLimit ||
+              totalSize > configuration.totalSizeLimit {
             guard let metadata = remainingMetadata.first else {
                 return
             }
@@ -274,7 +277,7 @@ public extension DiskCache {
         let dataURL = dataURL(fileName: fileName)
         let metadataURL = metadataURL(fileName: fileName)
         
-        let effectiveTTL = ttl ?? configuuration.defaultTTL
+        let effectiveTTL = ttl ?? configuration.defaultTTL
         
         let metadata = MetaData(
             key: key,
@@ -285,9 +288,14 @@ public extension DiskCache {
             expiresAt: effectiveTTL.map { now.addingTimeInterval($0) }
         )
         
-        try data.write(to: dataURL, options: .atomic)
-        try saveMetadata(metadata, url: metadataURL)
-        try evictIfNeeded()
+        do {
+            try data.write(to: dataURL, options: .atomic)
+            try saveMetadata(metadata, url: metadataURL)
+            try evictIfNeeded()
+        } catch {
+            try? removeFiles(fileName: fileName)
+            throw error
+        }
     }
     
     func removeData(key: String) async throws {
@@ -296,12 +304,12 @@ public extension DiskCache {
     }
     
     func removeAll() async throws {
-        guard fileManager.fileExists(atPath: configuuration.directoryURL.path) else {
+        guard fileManager.fileExists(atPath: configuration.directoryURL.path) else {
             return
         }
         
         let urls = try fileManager.contentsOfDirectory(
-            at: configuuration.directoryURL,
+            at: configuration.directoryURL,
             includingPropertiesForKeys: nil
         )
         

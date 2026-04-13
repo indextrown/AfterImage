@@ -195,6 +195,23 @@ struct DiskCacheTests {
         #expect(result2 == nil)
         #expect(result3 == nil)
     }
+    
+    @Test("파일명으로 안전하지 않은 문자가 포함된 키도 해시 파일명으로 안전하게 저장 및 조회된다")
+    func storesAndRetrievesDataForUnsafeKey() async throws {
+        // Given
+        let (cache, directoryURL) = makeCache()
+        let key = "https://example.com/images/😀/프로필.png?size=200x200&token=a/b/c&name=hello world"
+        let expectedData = Data("unsafe-key-data".utf8)
+
+        // When
+        try await cache.insert(expectedData, key: key, ttl: nil)
+        let retrievedData = await cache.data(key: key)
+
+        // Then
+        #expect(retrievedData == expectedData)
+        #expect(fileExists(forKey: key, in: directoryURL))
+        #expect(metadataExists(forKey: key, in: directoryURL))
+    }
 }
 
 // MARK: - Helpers
@@ -219,7 +236,7 @@ private extension DiskCacheTests {
             totalSizeLimit: totalSizeLimit
         )
         
-        let cache = DiskCache(configuuration: configuration)
+        let cache = DiskCache(configuration: configuration)
         return (cache, directoryURL)
     }
     

@@ -48,6 +48,8 @@ public struct DiskCacheConfiguration: Sendable {
         countLimit: Int,
         totalSizeLimit: Int
     ) {
+        precondition(countLimit >= 0, "countLimit must be >= 0")
+        precondition(totalSizeLimit >= 0, "totalSizeLimit must be >= 0")
         self.directoryURL = directoryURL
         self.defaultTTL = defaultTTL
         self.countLimit = countLimit
