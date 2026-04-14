@@ -84,7 +84,11 @@ private extension VariantKey {
     /// - Note:
     ///   - 부동소수점 오차로 인해 동일 값이 다르게 직렬화되는 것을 방지합니다.
     func format(_ value: CGFloat) -> String {
-        return String(format: "%.3f", Double(value))
+        return String(
+            format: "%.3f",
+            locale: Locale(identifier: "en_US_POSIX"),
+            Double(value)
+        )
     }
     
     /// targetSize를 문자열로 직렬화합니다.
