@@ -262,7 +262,7 @@ extension DiskCache {
         
         for metadata in metadataList {
             if isExpired(metadata) {
-                try removeFiles(fileName: metadata.fileName)
+                try? removeFiles(fileName: metadata.fileName)
             } else {
                 remainingMetadata.append(metadata)
             }
