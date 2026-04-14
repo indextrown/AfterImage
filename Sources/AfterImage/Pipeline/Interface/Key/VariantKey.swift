@@ -62,7 +62,8 @@ public struct VariantKey: Hashable, Sendable {
             requestURL: request.url,
             targetSize: request.targetSize,
             scale: request.scale,
-            processorIdentifiers: request.processors.map(\.identifier)
+            processorIdentifiers: request.processors.map(\.identifier),
+            schemaVersion: schemaVersion
         )
     }
     
@@ -103,16 +104,27 @@ private extension VariantKey {
         return format(scale)
     }
     
-    /// processor 목록을 문자열로 직렬화합니다.
+    /// processor 목록을 충돌 없이 문자열로 직렬화합니다.
     ///
-    /// - 비어있음 → "none"
-    /// - 존재 → ","로 join
+    /// 각 identifier 앞에 UTF-8 바이트 길이를 함께 기록하여,
+    /// identifier 내부에 구분자(`,`, `:` 등)가 포함되어 있어도
+    /// 서로 다른 processor chain이 동일 문자열로 직렬화되지 않도록 합니다.
+    ///
+    /// 예:
+    /// - [] → "count=0"
+    /// - ["resize", "round"] → "count=2|6:resize,5:round"
     var serializedProcessors: String {
         guard processorIdentifiers.isEmpty == false else {
-            return "none"
+            return "count=0"
         }
         
-        return processorIdentifiers.joined(separator: ",")
+        let serializedItems = processorIdentifiers
+            .map { identifier in
+                "\(identifier.utf8.count):\(identifier)"
+            }
+            .joined(separator: ",")
+        
+        return "count=\(processorIdentifiers.count)|\(serializedItems)"
     }
     
     /// VariantKey의 모든 요소를 하나의 문자열로 직렬화합니다.
