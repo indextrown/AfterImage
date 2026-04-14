@@ -48,6 +48,11 @@ public protocol ImageProcessor: Sendable {
     /// 예를 들어 동일한 원본 이미지에 대해
     /// `resize_100x100`, `round_12`, `grayscale` 같은 서로 다른 identifier를 사용하면,
     /// 각 후처리 결과를 별도의 캐시 항목으로 안전하게 구분할 수 있습니다.
+    ///
+    ///  - Important:
+    ///   - `identifier`는 동일한 설정에서 항상 동일한 값을 반환해야 합니다.
+    ///   - locale, 랜덤 값, 비결정적 포맷(예: 정밀도 불안정한 부동소수 문자열)에
+    ///     의존하지 않도록 구현해야 캐시 키가 안정적으로 유지됩니다.
     var identifier: String { get }
     
     /// 전달된 이미지를 가공하여 새로운 이미지를 반환합니다.

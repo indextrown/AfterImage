@@ -25,6 +25,17 @@ public struct ImageRequest: Sendable {
         cachePolicy: CachePolicy = .useCache,
         processors: [any ImageProcessor] = []
     ) {
+        precondition(
+            scale.isFinite && scale > 0,
+            "ImageRequest.scale must be finite and > 0"
+        )
+        if let targetSize {
+            precondition(
+                targetSize.width.isFinite && targetSize.height.isFinite &&
+                targetSize.width > 0 && targetSize.height > 0,
+                "ImageRequest.targetSize must have finite, positive width/height"
+            )
+        }
         self.url = url
         self.targetSize = targetSize
         self.scale = scale

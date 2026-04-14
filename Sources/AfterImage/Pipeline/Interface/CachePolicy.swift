@@ -22,10 +22,12 @@ public enum CachePolicy: Sendable, Equatable {
     
     /// 메모리 캐시만 사용합니다.
     /// 디스크 캐시는 읽거나 쓰지 않습니다.
+    /// 메모리 캐시 miss 시에는 네트워크 로드를 허용하며, 결과는 메모리에만 기록합니다.
     case memoryOnly
     
     /// 디스크 캐시만 사용합니다.
     /// 메모리 캐시는 읽거나 쓰지 않습니다.
+    /// 디스크 캐시 miss 시에는 네트워크 로드를 허용하며, 결과는 디스크에만 기록합니다.
     case diskOnly
 }
 
