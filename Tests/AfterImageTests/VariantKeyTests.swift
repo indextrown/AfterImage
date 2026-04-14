@@ -1,0 +1,268 @@
+//
+//  VariantKeyTests.swift
+//  AfterImageTests
+//
+//  Created by 김동현 on 4/14/26.
+//
+
+import Foundation
+import CoreGraphics
+import Testing
+@testable import AfterImage
+
+struct VariantKeyTests {
+    
+    @Test("동일한 Variant 구성은 동일한 cacheKey를 생성한다")
+    func sameVariantProducesSameCacheKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 200),
+            scale: 2.0,
+            processorIdentifiers: ["resize", "round"],
+            schemaVersion: "v1"
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 200),
+            scale: 2.0,
+            processorIdentifiers: ["resize", "round"],
+            schemaVersion: "v1"
+        )
+        
+        // When
+        let lhsKey = lhs.cacheKey
+        let rhsKey = rhs.cacheKey
+        
+        // Then
+        #expect(lhsKey == rhsKey)
+    }
+    
+    @Test("URL이 다르면 다른 cacheKey를 생성한다")
+    func differentURLProducesDifferentCacheKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image-a.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize"]
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image-b.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize"]
+        )
+        
+        // When / Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+    
+    @Test("targetSize가 다르면 다른 cacheKey를 생성한다")
+    func differentTargetSizeProducesDifferentCacheKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize"]
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 200, height: 200),
+            scale: 2.0,
+            processorIdentifiers: ["resize"]
+        )
+        
+        // When / Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+    
+    @Test("scale이 다르면 다른 cacheKey를 생성한다")
+    func differentScaleProducesDifferentCacheKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize"]
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 3.0,
+            processorIdentifiers: ["resize"]
+        )
+        
+        // When / Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+    
+    @Test("processorIdentifiers가 다르면 다른 cacheKey를 생성한다")
+    func differentProcessorsProduceDifferentCacheKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize", "round"]
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize", "blur"]
+        )
+        
+        // When / Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+    
+    @Test("schemaVersion이 다르면 다른 cacheKey를 생성한다")
+    func differentSchemaVersionProducesDifferentCacheKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize"],
+            schemaVersion: "v1"
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize"],
+            schemaVersion: "v2"
+        )
+        
+        // When / Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+    
+    @Test("ImageRequest 기반 초기화에서도 schemaVersion이 cacheKey에 반영된다")
+    func schemaVersionFromRequestInitAffectsCacheKey() {
+        let request = ImageRequest(
+            url: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processors: []
+        )
+
+        let lhs = VariantKey(request: request, schemaVersion: "v1")
+        let rhs = VariantKey(request: request, schemaVersion: "v2")
+
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+    
+    @Test("targetSize가 nil이면 nil 표현을 포함한 고정된 키를 생성한다")
+    func nilTargetSizeProducesStableKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: nil,
+            scale: 2.0,
+            processorIdentifiers: ["resize"]
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: nil,
+            scale: 2.0,
+            processorIdentifiers: ["resize"]
+        )
+        
+        // When / Then
+        #expect(lhs.cacheKey == rhs.cacheKey)
+    }
+    
+    @Test("processorIdentifiers가 비어 있으면 동일 조건에서 동일한 cacheKey를 생성한다")
+    func emptyProcessorsProduceStableKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 80, height: 80),
+            scale: 2.0,
+            processorIdentifiers: []
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 80, height: 80),
+            scale: 2.0,
+            processorIdentifiers: []
+        )
+        
+        // When / Then
+        #expect(lhs.cacheKey == rhs.cacheKey)
+    }
+    
+    @Test("processorIdentifiers의 순서가 다르면 다른 cacheKey를 생성한다")
+    func processorOrderAffectsCacheKey() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["resize", "round"]
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["round", "resize"]
+        )
+        
+        // When / Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+    
+    @Test("구분자가 포함된 processor identifier도 충돌 없이 다른 cacheKey를 생성한다")
+    func processorsWithDelimitersDoNotCollide() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["a,b", "c"]
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["a", "b,c"]
+        )
+        
+        // Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+    
+    @Test("빈 processor 목록과 실제 identifier 값은 충돌하지 않는다")
+    func emptyProcessorsDoNotCollideWithLiteralIdentifier() {
+        // Given
+        let lhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: []
+        )
+        
+        let rhs = VariantKey(
+            requestURL: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processorIdentifiers: ["count=0"]
+        )
+        
+        // Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+}
