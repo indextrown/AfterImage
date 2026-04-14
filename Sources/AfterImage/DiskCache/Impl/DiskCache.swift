@@ -225,19 +225,22 @@ extension DiskCache {
         var remainingMetadata = try loadAllMetadata()
         var totalSize = remainingMetadata.reduce(0) { $0 + $1.size }
         
+        // 최근 접근한 항목이 앞, 가장 오래된 항목이 뒤로 가도록 정렬
         remainingMetadata.sort {
-            $0.lastAccessedAt < $1.lastAccessedAt
+            $0.lastAccessedAt > $1.lastAccessedAt
         }
         
+        // 개수 제한 또는 전체 용량 제한을 만족할 때까지,
+        // 가장 오래 접근하지 않은 항목부터 순서대로 제거합니다.
         while remainingMetadata.count > configuration.countLimit ||
               totalSize > configuration.totalSizeLimit {
-            guard let metadata = remainingMetadata.first else {
+            guard let metadata = remainingMetadata.last else {
                 return
             }
             
             try removeFiles(fileName: metadata.fileName)
             totalSize -= metadata.size
-            remainingMetadata.removeFirst()
+            remainingMetadata.removeLast()
         }
     }
 }
