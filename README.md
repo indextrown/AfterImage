@@ -1,4 +1,90 @@
 # AfterImage
+`AfterImage`는 iOS 앱에서 반복되는 이미지 다운로드 비용을 줄이기 위해 만드는 Swift 기반 이미지 캐시 라이브러리입니다.
+
+<!--현재 목표는 단순한 `URL -> UIImage` 헬퍼가 아니라, 메모리 캐시와 디스크 캐시를 기반으로 한 request-aware image pipeline을 만드는 것입니다.-->
+
+## 파이프라인
+![AfterImage Pipeline](Pipeline.png)
+
+## 구현 방향
+기본 이미지 로딩 흐름은 아래 순서를 따릅니다.
+
+```text
+ImageRequest
+  -> CacheKey / VariantKey 생성
+  -> MemoryCache 조회
+  -> DiskCache 조회
+  -> Network 다운로드
+  -> ImageDecoder / Downsampling
+  -> ImageProcessor 적용
+  -> MemoryCache + DiskCache 저장
+  -> UIImage 반환
+```
+
+## 구현 순서
+- [x] 패키지 기본 구조 생성
+- [x] 메모리 캐시 인터페이스 정의
+- [x] 메모리 캐시 설정 타입 구현
+- [x] LRU 기반 메모리 캐시 구현
+- [x] 메모리 캐시 테스트 작성
+- [x] 디스크 캐시 인터페이스 정의
+- [x] 디스크 캐시 설정 타입 구현
+- [x] actor 기반 디스크 캐시 구현
+- [x] 디스크 캐시 테스트 작성
+- [ ] `ImageRequest` 구현
+- [ ] `CachePolicy` 구현
+- [ ] `ImageProcessor` 인터페이스 구현
+- [ ] `CacheKey` / `VariantKey` 구현
+- [ ] `DataLoaderType` 인터페이스 구현
+- [ ] `URLSessionDataLoader` 구현
+- [ ] `ImageDecoderType` 인터페이스 구현
+- [ ] `ImageDecoder` + downsampling 구현
+- [ ] `ImagePipelineType` 인터페이스 구현
+- [ ] `ImagePipeline` actor 구현
+- [ ] 중복 요청 방지(in-flight dedupe) 구현
+- [ ] ImagePipeline 테스트 작성
+- [ ] SwiftUI 어댑터 구현
+- [ ] UIKit 어댑터 구현
+- [ ] README 사용 예제 정리
+
+## 계층 구조
+```text
+UI Layer
+  -> SwiftUI Adapter / UIKit Adapter
+
+Pipeline Layer
+  -> ImageRequest
+  -> CachePolicy
+  -> CacheKey / VariantKey
+  -> ImagePipeline
+  -> In-flight Dedupe
+
+Infrastructure Layer
+  -> LRUMemoryCache
+  -> DiskCache
+  -> DataLoader
+  -> ImageDecoder
+  -> ImageProcessor
+```
+
+## 현재 상태
+현재까지는 캐시 계층이 중심입니다.
+
+- `LRUMemoryCache`는 직접 구현한 LRU 정책을 사용합니다.
+- `DiskCache`는 actor 기반 파일 캐시로 구현되어 있습니다.
+- 디스크 캐시는 TTL, count limit, total size limit, 손상된 metadata 정리를 고려합니다.
+- 다음 단계는 UI가 아니라 `ImageRequest`, `CachePolicy`, `CacheKey` / `VariantKey`를 먼저 만드는 것입니다.
+
+## V1 Non-goals
+처음 버전에서는 아래 항목을 우선순위에서 제외합니다.
+- HTTP cache-control 완전 준수
+- progressive decoding
+- animated image 지원
+- 복잡한 prefetch scheduler
+- cross-platform generalization
+
+
+<!--# AfterImage-->
 <!---->
 <!--`AfterImage`는 iOS 앱에서 반복되는 이미지 다운로드 비용을 줄이기 위해 만드는 Swift 기반 이미지 캐시 라이브러리입니다.-->
 <!---->
