@@ -37,6 +37,18 @@ public struct VariantKey: Hashable, Sendable {
         processorIdentifiers: [String],
         schemaVersion: String = "v1"
     ) {
+        precondition(
+            scale.isFinite && scale > 0,
+            "VariantKey.scale must be finite and > 0"
+        )
+        
+        if let targetSize {
+            precondition(
+                targetSize.width.isFinite && targetSize.height.isFinite &&
+                targetSize.width > 0 && targetSize.height > 0,
+                "VariantKey.targetSize must have finite, positive width/height"
+            )
+        }
         self.requestURL = requestURL
         self.targetSize = targetSize
         self.scale = scale
