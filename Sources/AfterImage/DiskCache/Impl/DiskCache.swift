@@ -216,6 +216,7 @@ extension DiskCache {
     /// 즉, 만료 항목 제거와 LRU 기반 제거를 함께 수행하는 메서드입니다.
     ///
     /// - Throws: 메타데이터 로드나 파일 삭제 중 오류가 발생하면 throw합니다.
+    @available(*, deprecated, message: "Use evictIfNeeded() instead.")
     private func evictIfNeeded_legacy() throws {
         let metadataList = try loadAllMetadata()
         for metadata in metadataList where isExpired(metadata) {
