@@ -62,7 +62,8 @@ public struct VariantKey: Hashable, Sendable {
             requestURL: request.url,
             targetSize: request.targetSize,
             scale: request.scale,
-            processorIdentifiers: request.processors.map(\.identifier)
+            processorIdentifiers: request.processors.map(\.identifier),
+            schemaVersion: schemaVersion
         )
     }
     
@@ -105,14 +106,15 @@ private extension VariantKey {
     
     /// processor 목록을 문자열로 직렬화합니다.
     ///
-    /// - 비어있음 → "none"
-    /// - 존재 → ","로 join
+    /// - 비어있음 → "[]"
+    /// - 존재 → JSON 배열 형식 (예: ["resize","round"])
     var serializedProcessors: String {
-        guard processorIdentifiers.isEmpty == false else {
-            return "none"
+        guard let data = try? JSONSerialization.data(withJSONObject: processorIdentifiers, options: [.sortedKeys]),
+              let jsonString = String(data: data, encoding: .utf8) else {
+            return "[]"
         }
-        
-        return processorIdentifiers.joined(separator: ",")
+
+        return jsonString
     }
     
     /// VariantKey의 모든 요소를 하나의 문자열로 직렬화합니다.

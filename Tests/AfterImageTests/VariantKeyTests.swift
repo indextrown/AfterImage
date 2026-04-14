@@ -197,14 +197,38 @@ struct VariantKeyTests {
             scale: 2.0,
             processorIdentifiers: ["resize", "round"]
         )
-        
+
         let rhs = VariantKey(
             requestURL: URL(string: "https://example.com/image.png")!,
             targetSize: CGSize(width: 100, height: 100),
             scale: 2.0,
             processorIdentifiers: ["round", "resize"]
         )
-        
+
+        // When / Then
+        #expect(lhs.cacheKey != rhs.cacheKey)
+    }
+
+    @Test("ImageRequest 기반 init에서 schemaVersion이 다르면 다른 cacheKey를 생성한다")
+    func requestBasedInitRespectsSchemaVersion() {
+        // Given
+        let request1 = ImageRequest(
+            url: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processors: []
+        )
+
+        let request2 = ImageRequest(
+            url: URL(string: "https://example.com/image.png")!,
+            targetSize: CGSize(width: 100, height: 100),
+            scale: 2.0,
+            processors: []
+        )
+
+        let lhs = VariantKey(request: request1, schemaVersion: "v1")
+        let rhs = VariantKey(request: request2, schemaVersion: "v2")
+
         // When / Then
         #expect(lhs.cacheKey != rhs.cacheKey)
     }
