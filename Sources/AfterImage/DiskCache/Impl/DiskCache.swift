@@ -216,7 +216,7 @@ extension DiskCache {
     /// 즉, 만료 항목 제거와 LRU 기반 제거를 함께 수행하는 메서드입니다.
     ///
     /// - Throws: 메타데이터 로드나 파일 삭제 중 오류가 발생하면 throw합니다.
-    private func evictIfNeeded() throws {
+    private func evictIfNeeded_legacy() throws {
         let metadataList = try loadAllMetadata()
         for metadata in metadataList where isExpired(metadata) {
             try removeFiles(fileName: metadata.fileName)
@@ -234,6 +234,51 @@ extension DiskCache {
         // 가장 오래 접근하지 않은 항목부터 순서대로 제거합니다.
         while remainingMetadata.count > configuration.countLimit ||
               totalSize > configuration.totalSizeLimit {
+            guard let metadata = remainingMetadata.last else {
+                return
+            }
+            
+            try removeFiles(fileName: metadata.fileName)
+            totalSize -= metadata.size
+            remainingMetadata.removeLast()
+        }
+    }
+    
+    /// 캐시 정책을 위반한 항목을 정리합니다.
+    ///
+    /// 정리 순서는 다음과 같습니다.
+    /// 1. 먼저 TTL이 지난 만료 항목을 제거합니다.
+    /// 2. 남은 항목의 총 개수와 총 용량을 계산합니다.
+    /// 3. 제한을 초과하면 `lastAccessedAt`이 가장 오래된 항목부터 제거합니다.
+    ///
+    /// 즉, 만료 항목 제거와 LRU 기반 제거를 함께 수행하는 메서드입니다.
+    ///
+    /// - Throws: 메타데이터 로드나 파일 삭제 중 오류가 발생하면 throw합니다.
+    private func evictIfNeeded() throws {
+        let metadataList = try loadAllMetadata()
+        
+        var remainingMetadata: [MetaData] = []
+        remainingMetadata.reserveCapacity(metadataList.count)
+        
+        for metadata in metadataList {
+            if isExpired(metadata) {
+                try removeFiles(fileName: metadata.fileName)
+            } else {
+                remainingMetadata.append(metadata)
+            }
+        }
+        
+        var totalSize = remainingMetadata.reduce(0) { $0 + $1.size }
+        
+        // 최근 접근한 항목이 앞, 가장 오래된 항목이 뒤로 가도록 정렬
+        remainingMetadata.sort {
+            $0.lastAccessedAt > $1.lastAccessedAt
+        }
+        
+        // 개수 제한 또는 전체 용량 제한을 만족할 때까지,
+        // 가장 오래 접근하지 않은 항목부터 순서대로 제거합니다.
+        while remainingMetadata.count > configuration.countLimit ||
+                totalSize > configuration.totalSizeLimit {
             guard let metadata = remainingMetadata.last else {
                 return
             }
