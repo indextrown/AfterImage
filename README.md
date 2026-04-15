@@ -31,12 +31,12 @@ ImageRequest
 - [x] 디스크 캐시 설정 타입 구현
 - [x] actor 기반 디스크 캐시 구현
 - [x] 디스크 캐시 테스트 작성
-- [ ] `ImageRequest` 구현
-- [ ] `CachePolicy` 구현
-- [ ] `ImageProcessor` 인터페이스 구현
-- [ ] `CacheKey` / `VariantKey` 구현
-- [ ] `DataLoaderType` 인터페이스 구현
-- [ ] `URLSessionDataLoader` 구현
+- [x] `ImageRequest` 구현
+- [x] `CachePolicy` 구현
+- [x] `ImageProcessor` 인터페이스 구현
+- [x] `CacheKey` / `VariantKey` 구현
+- [x] `DataLoaderType` 인터페이스 구현
+- [x] `URLSessionDataLoader` 구현
 - [ ] `ImageDecoderType` 인터페이스 구현
 - [ ] `ImageDecoder` + downsampling 구현
 - [ ] `ImagePipelineType` 인터페이스 구현
