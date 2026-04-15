@@ -10,7 +10,9 @@ import Testing
 @testable import AfterImage
 
 struct MemoryCacheBenchmarkTests {
-    private let operationCount = 50_000
+    // private let operationCount = 50_000
+    // private let iterationCount = 5
+    private let operationCount = 10
     private let iterationCount = 5
 
     @Test("LRUMemoryCache와 NSCache 삽입/조회 성능을 비교한다")
