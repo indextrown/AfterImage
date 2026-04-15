@@ -166,6 +166,15 @@ public final class AfterImage: @unchecked Sendable {
         return try await image(for: request)
     }
     
+    /// 현재 shared 파이프라인이 들고 있는 메모리 캐시와 디스크 캐시를 모두 비웁니다.
+    ///
+    /// 앱에서 설정한 `AfterImage.shared.configure(_:)`의 캐시 인스턴스를 대상으로 동작합니다.
+    /// 캐시 삭제 후 기존 화면을 다시 로드하려면 UI 쪽에서 reload trigger를 갱신해야 합니다.
+    public func clearCache() async throws {
+        let pipeline = currentPipeline()
+        try await pipeline.clearCache()
+    }
+    
     /// 현재 사용할 파이프라인을 안전하게 반환합니다.
     ///
     /// 파이프라인 참조만 잠금 안에서 가져오고, 실제 이미지 로딩은 잠금 밖에서 수행합니다.

@@ -5,6 +5,7 @@
 //  Created by 김동현 on 4/15/26.
 //
 
+import AfterImage
 import CoreGraphics
 import Foundation
 
@@ -20,6 +21,19 @@ enum SampleConfiguration {
     static let featuredTargetSize = CGSize(width: 320, height: 200)
     static let thumbnailTargetSize = CGSize(width: 84, height: 84)
     static let cachePolicyTargetSize = CGSize(width: 160, height: 160)
+    
+    static let afterImageConfiguration = AfterImageConfiguration(
+        memoryCacheConfiguration: MemoryCacheConfiguration(
+            countLimit: 200,
+            totalCostLimit: 50 * 1024 * 1024
+        ),
+        diskCacheConfiguration: DiskCacheConfiguration(
+            directoryURL: diskCacheDirectoryURL,
+            defaultTTL: 7 * 24 * 60 * 60,
+            countLimit: 1_000,
+            totalSizeLimit: 200 * 1024 * 1024
+        )
+    )
     
     static let images: [SampleImage] = [
         SampleImage(
@@ -61,5 +75,17 @@ enum SampleConfiguration {
             preconditionFailure("Invalid sample image URL: \(string)")
         }
         return url
+    }
+    
+    private static var diskCacheDirectoryURL: URL {
+        let cachesDirectory = FileManager.default.urls(
+            for: .cachesDirectory,
+            in: .userDomainMask
+        ).first ?? FileManager.default.temporaryDirectory
+        
+        return cachesDirectory.appendingPathComponent(
+            "AfterImageSampleApp",
+            isDirectory: true
+        )
     }
 }

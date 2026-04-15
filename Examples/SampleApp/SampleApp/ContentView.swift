@@ -12,6 +12,7 @@ struct ContentView: View {
     private let images = SampleConfiguration.images
     
     @State private var cacheOnlyResult: String = "Load from network first"
+    @State private var reloadToken = UUID()
     
     var body: some View {
         NavigationView {
@@ -53,6 +54,7 @@ struct ContentView: View {
             .frame(height: 200)
             .clipped()
             .cornerRadius(8)
+            .id("featured-\(reloadToken)")
         }
     }
     
@@ -69,6 +71,11 @@ struct ContentView: View {
                 
                 Button("Cache only") {
                     loadCacheOnly()
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Clear cache") {
+                    clearCacheAndReload()
                 }
                 .buttonStyle(.bordered)
             }
@@ -106,6 +113,7 @@ struct ContentView: View {
                     .frame(width: 84, height: 84)
                     .clipped()
                     .cornerRadius(8)
+                    .id("thumbnail-\(item.id)-\(reloadToken)")
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title)
@@ -117,6 +125,25 @@ struct ContentView: View {
                     }
                     
                     Spacer()
+                }
+            }
+        }
+    }
+    
+    private func clearCacheAndReload() {
+        cacheOnlyResult = "Clearing cache..."
+        
+        Task {
+            do {
+                try await AfterImage.shared.clearCache()
+                
+                await MainActor.run {
+                    reloadToken = UUID()
+                    cacheOnlyResult = "Cache cleared. Images reloading..."
+                }
+            } catch {
+                await MainActor.run {
+                    cacheOnlyResult = "Clear failed: \(error.localizedDescription)"
                 }
             }
         }
