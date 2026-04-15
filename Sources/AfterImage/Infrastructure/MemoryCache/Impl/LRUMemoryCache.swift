@@ -270,25 +270,49 @@ public extension LRUMemoryCache where Key == URL, Value == UIImage {
 // MARK: - Image
 public extension LRUMemoryCache where Value == UIImage {
 
-    /// UIImage의 메모리 사용량을 바이트 단위로 계산해 캐시에 저장합니다.
+    /// `UIImage`를 메모리 캐시에 저장합니다.
     ///
-    /// - Note:
-    ///   - 실제 메모리 사용량은 `cgImage`의 픽셀 크기를 기준으로 계산합니다.
-    ///   - `cgImage.width`와 `cgImage.height`는 실제 픽셀 수를 나타냅니다.
-    ///   - 일반적으로 디코딩된 이미지는 RGBA(4 byte per pixel) 포맷을 사용한다고 가정합니다.
-    ///   - 최종 cost = width × height × 4 (근사값)
+    /// 이미지의 메모리 사용량을 추정하여 `cost`를 계산한 뒤,
+    /// LRU 캐시에 삽입합니다.
     ///
     /// - Parameters:
-    ///   - image: 캐시에 저장할 UIImage
-    ///   - key: 이미지 식별을 위한 캐시 키
+    ///   - image: 캐시에 저장할 `UIImage`
+    ///   - key: 캐시 식별 키
+    ///
+    /// - Note:
+    ///   - `UIImage`는 내부적으로 `cgImage`를 항상 보장하지 않습니다.
+    ///     (`CIImage` 기반 이미지 등은 `cgImage`가 nil일 수 있음)
+    ///   - 따라서 두 가지 방식으로 메모리 cost를 계산합니다.
+    ///
+    ///     1. `cgImage`가 존재하는 경우:
+    ///        - 실제 픽셀 크기(`width * height`)를 기반으로 계산
+    ///        - RGBA 기준 4 byte per pixel을 가정하여 `width * height * 4`
+    ///
+    ///     2. `cgImage`가 없는 경우 (fallback):
+    ///        - `UIImage.size`(point 단위)에 `scale`을 곱해 픽셀 크기로 변환
+    ///        - `pixelWidth = size.width * scale`
+    ///        - `pixelHeight = size.height * scale`
+    ///        - 최소값 1로 보정하여 0 크기 방지
+    ///
+    /// - Important:
+    ///   - `cgImage`가 없다고 해서 저장을 건너뛰지 않고,
+    ///     fallback 계산을 통해 일관된 캐시 동작을 유지합니다.
+    ///   - 이는 이미지 내부 표현 방식에 따라 캐시 hit/miss가 달라지는 문제를 방지합니다.
+    ///
+    /// - Discussion:
+    ///   - 메모리 캐시는 cost 기반 eviction을 수행하므로,
+    ///     가능한 한 실제 메모리 사용량에 근접한 값으로 계산하는 것이 중요합니다.
+    ///   - 이 구현은 정확한 byte 측정이 아닌, 성능과 단순성을 고려한 근사치입니다.
     func insertImage(_ image: UIImage, key: Key) {
-        guard let cgImage = image.cgImage else {
-            return
-        }
+        let cost: Int
 
-        let width = cgImage.width
-        let height = cgImage.height
-        let cost = width * height * 4
+        if let cgImage = image.cgImage {
+            cost = cgImage.width * cgImage.height * 4
+        } else {
+            let pixelWidth = max(Int((image.size.width * image.scale).rounded(.up)), 1)
+            let pixelHeight = max(Int((image.size.height * image.scale).rounded(.up)), 1)
+            cost = pixelWidth * pixelHeight * 4
+        }
 
         insert(value: image, key: key, cost: cost)
     }

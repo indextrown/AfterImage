@@ -144,8 +144,13 @@ struct ImagePipelineTests {
         }
         
         let image = try await pipeline.loadImage(request)
+        let cgImage = try #require(image.cgImage)
+        let maxPixelSize = max(cgImage.width, cgImage.height)
         
-        #expect(image.cgImage != nil)
+        #expect(image.scale == 2)
+        #expect(image.size.width > 0)
+        #expect(image.size.height > 0)
+        #expect(maxPixelSize <= 160)
         #expect(memoryCache.value(key: cacheKey) != nil)
         #expect(FileManager.default.fileExists(atPath: diskCacheURL.path))
     }
@@ -172,9 +177,14 @@ struct ImagePipelineTests {
         
         let loadedImage = try await pipeline.loadImage(initialRequest)
         let cachedImage = try await pipeline.loadImage(cacheOnlyRequest)
+        let loadedCGImage = try #require(loadedImage.cgImage)
+        let cachedCGImage = try #require(cachedImage.cgImage)
         
-        #expect(loadedImage.cgImage != nil)
-        #expect(cachedImage.cgImage != nil)
+        #expect(loadedImage === cachedImage)
+        #expect(loadedImage.scale == 2)
+        #expect(cachedImage.scale == 2)
+        #expect(max(loadedCGImage.width, loadedCGImage.height) <= 160)
+        #expect(max(cachedCGImage.width, cachedCGImage.height) <= 160)
     }
 }
 
