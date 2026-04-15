@@ -64,13 +64,29 @@ import UIKit
 /// AfterImage의 public entry point입니다.
 ///
 /// 외부 사용자는 `ImagePipeline`, `MemoryCache`, `DiskCache`, `DataLoader`, `ImageDecoder`를
-/// 직접 조립하지 않고 이 타입을 통해 이미지를 요청할 수 있습니다.
-public final class AfterImage {
+/// 직접 조립하지 않고 이 타입을 통해 이미지를 요청할 수 있습니다.(Facade)
+public final class AfterImage: @unchecked Sendable {
     
     /// 기본 설정으로 구성된 공유 인스턴스입니다.
     public static let shared = AfterImage()
     
-    private let pipeline: any ImagePipelineType
+    /// 공유 인스턴스의 mutable 상태를 보호하는 잠금입니다.
+    ///
+    /// `configure(_:)`가 pipeline을 교체하는 순간과 `image(for:)`가 현재 pipeline을
+    /// 읽는 순간이 동시에 발생할 수 있으므로, 짧은 critical section만 보호합니다.
+    private let lock = NSLock()
+    
+    /// 실제 이미지 로딩을 수행하는 파이프라인입니다.
+    ///
+    /// 기본값은 `.default` configuration으로 만들어지며, 앱 시작 시 `configure(_:)`를
+    /// 호출하면 새로운 설정을 반영한 파이프라인으로 교체됩니다.
+    private var pipeline: any ImagePipelineType
+    
+    /// 공유 인스턴스가 이미 명시적으로 설정되었는지 나타냅니다.
+    ///
+    /// 이미지 로딩 중 설정이 다시 바뀌면 기존 in-flight 작업과 새 파이프라인이
+    /// 분리될 수 있으므로, `AfterImage.shared`는 앱 시작 시 한 번만 설정하는 것을 권장합니다.
+    private var isConfigured = false
     
     /// 테스트나 커스텀 구성을 위해 파이프라인을 직접 주입합니다.
     ///
@@ -83,28 +99,33 @@ public final class AfterImage {
     ///
     /// - Parameter configuration: 메모리/디스크 캐시 설정입니다.
     public convenience init(configuration: AfterImageConfiguration) {
-        let memoryCache = LRUMemoryCache<CacheKey, UIImage>(
-            configuration: configuration.memoryCacheConfiguration
-        )
-        
-        let diskCache = DiskCache(
-            configuration: configuration.diskCacheConfiguration
-        )
-        
-        
-        let pipeline = ImagePipeline(
-            memoryCache: memoryCache,
-            diskCache: diskCache,
-            dataLoader: URLSessionDataLoader(),
-            imageDecoder: ImageDecoder()
-        )
-        
-        self.init(pipeline: pipeline)
+        self.init(pipeline: Self.makePipeline(configuration: configuration))
     }
-    
+
     /// 기본 configuration으로 AfterImage를 생성합니다.
     public convenience init() {
         self.init(configuration: .default)
+    }
+    
+    /// 공유 인스턴스가 사용할 기본 파이프라인 설정을 앱 시작 시 한 번 지정합니다.
+    ///
+    /// Kingfisher의 `ImageCache.default` 설정처럼, 앱의 `init`에서 한 번 호출한 뒤
+    /// 화면에서는 `AfterImage.shared`를 직접 사용하도록 하기 위한 API입니다.
+    ///
+    /// - Important:
+    ///   이미지 로딩이 진행 중인 시점에 설정을 다시 바꾸면 기존 in-flight 작업과
+    ///   새 파이프라인이 분리될 수 있으므로, 앱 시작 시 한 번만 호출하는 것을 권장합니다.
+    public func configure(_ configuration: AfterImageConfiguration) {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        guard !isConfigured else {
+            assertionFailure("AfterImage.shared should be configured once at app launch.")
+            return
+        }
+        
+        pipeline = Self.makePipeline(configuration: configuration)
+        isConfigured = true
     }
     
     /// `ImageRequest`를 기반으로 이미지를 로드합니다.
@@ -112,7 +133,8 @@ public final class AfterImage {
     /// - Parameter request: 이미지 로딩 요청입니다.
     /// - Returns: 디코딩과 후처리가 완료된 이미지입니다.
     public func image(for request: ImageRequest) async throws -> UIImage {
-        try await pipeline.loadImage(request)
+        let pipeline = currentPipeline()
+        return try await pipeline.loadImage(request)
     }
     
     /// URL 기반의 간단한 이미지 로딩 API입니다.
@@ -142,5 +164,39 @@ public final class AfterImage {
         )
         
         return try await image(for: request)
+    }
+    
+    /// 현재 사용할 파이프라인을 안전하게 반환합니다.
+    ///
+    /// 파이프라인 참조만 잠금 안에서 가져오고, 실제 이미지 로딩은 잠금 밖에서 수행합니다.
+    /// 이렇게 해야 네트워크, 디스크 IO, 디코딩 작업이 전역 lock을 오래 점유하지 않습니다.
+    private func currentPipeline() -> any ImagePipelineType {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        return pipeline
+    }
+    
+    /// configuration을 기반으로 AfterImage 기본 파이프라인을 조립합니다.
+    ///
+    /// 이 메서드는 `AfterImage`의 public facade가 내부 구현체 생성 방식을 숨기기 위해 사용합니다.
+    /// 외부 사용자는 메모리 캐시, 디스크 캐시, 데이터 로더, 디코더를 직접 조립하지 않아도 됩니다.
+    private static func makePipeline(
+        configuration: AfterImageConfiguration
+    ) -> any ImagePipelineType {
+        let memoryCache = LRUMemoryCache<CacheKey, UIImage>(
+            configuration: configuration.memoryCacheConfiguration
+        )
+        
+        let diskCache = DiskCache(
+            configuration: configuration.diskCacheConfiguration
+        )
+        
+        return ImagePipeline(
+            memoryCache: memoryCache,
+            diskCache: diskCache,
+            dataLoader: URLSessionDataLoader(),
+            imageDecoder: ImageDecoder()
+        )
     }
 }

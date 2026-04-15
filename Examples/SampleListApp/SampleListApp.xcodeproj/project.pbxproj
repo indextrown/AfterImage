@@ -7,47 +7,45 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DF8155AE2F8F8D8800C2869D /* AfterImage in Frameworks */ = {isa = PBXBuildFile; productRef = DF8155AD2F8F8D8800C2869D /* AfterImage */; };
-		DFB1A9242F8FA7CE001F97B9 /* AfterImage in Frameworks */ = {isa = PBXBuildFile; productRef = DFB1A9232F8FA7CE001F97B9 /* AfterImage */; };
+		DF6A01242F9024E8001F97B9 /* AfterImage in Frameworks */ = {isa = PBXBuildFile; productRef = DF6A01232F9024E8001F97B9 /* AfterImage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		DFB1A90C2F8FA7710051CF31 /* SimpleListApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimpleListApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DF6A010C2F9024E10051CF31 /* SampleListApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SampleListApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		DFB1A90E2F8FA7710051CF31 /* SimpleListApp */ = {
+		DF6A010E2F9024E10051CF31 /* SampleListApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SimpleListApp;
+			path = SampleListApp;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		DFB1A9092F8FA7710051CF31 /* Frameworks */ = {
+		DF6A01092F9024E10051CF31 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DFB1A9242F8FA7CE001F97B9 /* AfterImage in Frameworks */,
-				DF8155AE2F8F8D8800C2869D /* AfterImage in Frameworks */,
+				DF6A01242F9024E8001F97B9 /* AfterImage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		DFB1A9032F8FA7710051CF31 = {
+		DF6A01032F9024E10051CF31 = {
 			isa = PBXGroup;
 			children = (
-				DFB1A90E2F8FA7710051CF31 /* SimpleListApp */,
-				DFB1A90D2F8FA7710051CF31 /* Products */,
+				DF6A010E2F9024E10051CF31 /* SampleListApp */,
+				DF6A010D2F9024E10051CF31 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		DFB1A90D2F8FA7710051CF31 /* Products */ = {
+		DF6A010D2F9024E10051CF31 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				DFB1A90C2F8FA7710051CF31 /* SimpleListApp.app */,
+				DF6A010C2F9024E10051CF31 /* SampleListApp.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,69 +53,68 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		DFB1A90B2F8FA7710051CF31 /* SimpleListApp */ = {
+		DF6A010B2F9024E10051CF31 /* SampleListApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = DFB1A9172F8FA7720051CF31 /* Build configuration list for PBXNativeTarget "SimpleListApp" */;
+			buildConfigurationList = DF6A01172F9024E20051CF31 /* Build configuration list for PBXNativeTarget "SampleListApp" */;
 			buildPhases = (
-				DFB1A9082F8FA7710051CF31 /* Sources */,
-				DFB1A9092F8FA7710051CF31 /* Frameworks */,
-				DFB1A90A2F8FA7710051CF31 /* Resources */,
+				DF6A01082F9024E10051CF31 /* Sources */,
+				DF6A01092F9024E10051CF31 /* Frameworks */,
+				DF6A010A2F9024E10051CF31 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				DFB1A90E2F8FA7710051CF31 /* SimpleListApp */,
+				DF6A010E2F9024E10051CF31 /* SampleListApp */,
 			);
-			name = SimpleListApp;
+			name = SampleListApp;
 			packageProductDependencies = (
-				DFB1A9232F8FA7CE001F97B9 /* AfterImage */,
-				DF8155AD2F8F8D8800C2869D /* AfterImage */,
+				DF6A01232F9024E8001F97B9 /* AfterImage */,
 			);
-			productName = SimpleListApp;
-			productReference = DFB1A90C2F8FA7710051CF31 /* SimpleListApp.app */;
+			productName = SampleListApp;
+			productReference = DF6A010C2F9024E10051CF31 /* SampleListApp.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		DFB1A9042F8FA7710051CF31 /* Project object */ = {
+		DF6A01042F9024E10051CF31 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
-					DFB1A90B2F8FA7710051CF31 = {
+					DF6A010B2F9024E10051CF31 = {
 						CreatedOnToolsVersion = 26.4;
 					};
 				};
 			};
-			buildConfigurationList = DFB1A9072F8FA7710051CF31 /* Build configuration list for PBXProject "SimpleListApp" */;
+			buildConfigurationList = DF6A01072F9024E10051CF31 /* Build configuration list for PBXProject "SampleListApp" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = DFB1A9032F8FA7710051CF31;
+			mainGroup = DF6A01032F9024E10051CF31;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				DF8155AC2F8F8D8800C2869D /* XCLocalSwiftPackageReference "../../../AfterImage" */,
+				DF6A01222F9024E8001F97B9 /* XCLocalSwiftPackageReference "../../../AfterImage" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = DFB1A90D2F8FA7710051CF31 /* Products */;
+			productRefGroup = DF6A010D2F9024E10051CF31 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				DFB1A90B2F8FA7710051CF31 /* SimpleListApp */,
+				DF6A010B2F9024E10051CF31 /* SampleListApp */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		DFB1A90A2F8FA7710051CF31 /* Resources */ = {
+		DF6A010A2F9024E10051CF31 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -127,7 +124,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		DFB1A9082F8FA7710051CF31 /* Sources */ = {
+		DF6A01082F9024E10051CF31 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -137,7 +134,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		DFB1A9152F8FA7720051CF31 /* Debug */ = {
+		DF6A01152F9024E20051CF31 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -201,7 +198,7 @@
 			};
 			name = Debug;
 		};
-		DFB1A9162F8FA7720051CF31 /* Release */ = {
+		DF6A01162F9024E20051CF31 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -258,7 +255,7 @@
 			};
 			name = Release;
 		};
-		DFB1A9182F8FA7720051CF31 /* Debug */ = {
+		DF6A01182F9024E20051CF31 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -278,7 +275,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.indextrown.SimpleListApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.indextrown.SampleListApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -290,7 +287,7 @@
 			};
 			name = Debug;
 		};
-		DFB1A9192F8FA7720051CF31 /* Release */ = {
+		DF6A01192F9024E20051CF31 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -310,7 +307,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.indextrown.SimpleListApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.indextrown.SampleListApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -325,20 +322,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		DFB1A9072F8FA7710051CF31 /* Build configuration list for PBXProject "SimpleListApp" */ = {
+		DF6A01072F9024E10051CF31 /* Build configuration list for PBXProject "SampleListApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				DFB1A9152F8FA7720051CF31 /* Debug */,
-				DFB1A9162F8FA7720051CF31 /* Release */,
+				DF6A01152F9024E20051CF31 /* Debug */,
+				DF6A01162F9024E20051CF31 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		DFB1A9172F8FA7720051CF31 /* Build configuration list for PBXNativeTarget "SimpleListApp" */ = {
+		DF6A01172F9024E20051CF31 /* Build configuration list for PBXNativeTarget "SampleListApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				DFB1A9182F8FA7720051CF31 /* Debug */,
-				DFB1A9192F8FA7720051CF31 /* Release */,
+				DF6A01182F9024E20051CF31 /* Debug */,
+				DF6A01192F9024E20051CF31 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -346,22 +343,18 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		DF8155AC2F8F8D8800C2869D /* XCLocalSwiftPackageReference "../../../AfterImage" */ = {
+		DF6A01222F9024E8001F97B9 /* XCLocalSwiftPackageReference "../../../AfterImage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../../AfterImage;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		DF8155AD2F8F8D8800C2869D /* AfterImage */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = AfterImage;
-		};
-		DFB1A9232F8FA7CE001F97B9 /* AfterImage */ = {
+		DF6A01232F9024E8001F97B9 /* AfterImage */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AfterImage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = DFB1A9042F8FA7710051CF31 /* Project object */;
+	rootObject = DF6A01042F9024E10051CF31 /* Project object */;
 }

@@ -9,14 +9,12 @@ import AfterImage
 import SwiftUI
 
 struct ContentView: View {
-    let afterImage: AfterImage
-    
     private let images = ImageItem.samples
     
     var body: some View {
         NavigationView {
             List(images) { item in
-                ImageRow(item: item, afterImage: afterImage)
+                ImageRow(item: item)
                     .listRowSeparator(.hidden)
             }
             .listStyle(.plain)
@@ -27,15 +25,13 @@ struct ContentView: View {
 
 private struct ImageRow: View {
     let item: ImageItem
-    let afterImage: AfterImage
     
     var body: some View {
         HStack(spacing: 14) {
             AfterImageView(
                 url: item.url,
                 targetSize: CGSize(width: 80, height: 80),
-                scale: 2,
-                afterImage: afterImage
+                scale: 2
             ) { image in
                 image
                     .resizable()
@@ -136,5 +132,5 @@ private struct ImageItem: Identifiable {
 }
 
 #Preview {
-    ContentView(afterImage: AfterImage(configuration: .default))
+    ContentView()
 }
