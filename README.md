@@ -37,8 +37,8 @@ ImageRequest
 - [x] `CacheKey` / `VariantKey` 구현
 - [x] `DataLoaderType` 인터페이스 구현
 - [x] `URLSessionDataLoader` 구현
-- [ ] `ImageDecoderType` 인터페이스 구현
-- [ ] `ImageDecoder` + downsampling 구현
+- [x] `ImageDecoderType` 인터페이스 구현
+- [x] `ImageDecoder` + downsampling 구현
 - [ ] `ImagePipelineType` 인터페이스 구현
 - [ ] `ImagePipeline` actor 구현
 - [ ] 중복 요청 방지(in-flight dedupe) 구현
