@@ -254,17 +254,17 @@ public extension LRUMemoryCache where Key == URL, Value == UIImage {
     /// - Parameters:
     ///   - image: 캐시에 저장할 UIImage
     ///   - key: 이미지 식별을 위한 URL 키
-    @available(*, deprecated, message: "Use insertImage(_ image: UIImage, key: Key) instead.")
-    func insertImage(_ image: UIImage, key: URL) {
-        
-        guard let cgimage = image.cgImage else { return }
-        
-        let width = cgimage.width
-        let height = cgimage.height
-        let cost = width * height * 4
-        
-        insert(value: image, key: key, cost: cost)
-    }
+//    @available(*, deprecated, message: "Use insertImage(_ image: UIImage, key: Key) instead.")
+//    func insertImage(_ image: UIImage, key: URL) {
+//        
+//        guard let cgimage = image.cgImage else { return }
+//        
+//        let width = cgimage.width
+//        let height = cgimage.height
+//        let cost = width * height * 4
+//        
+//        insert(value: image, key: key, cost: cost)
+//    }
 }
 
 // MARK: - Image
