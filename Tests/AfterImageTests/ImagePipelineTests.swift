@@ -105,6 +105,111 @@ struct ImagePipelineTests {
         #expect(await diskCache.storedData(key: cacheKey.rawValue) == networkData)
         #expect(imageDecoder.decodeCount == 1)
     }
+    
+    @Test("동일 request가 동시에 여러 번 들어오면 network load는 한 번만 수행된다")
+    func concurrentSameRequestsShareSingleInFlightTask() async throws {
+        let request = ImageRequest(url: URL(string: "https://example.com/image.png")!)
+        let decodedImage = makeImage(size: CGSize(width: 40, height: 40))
+        
+        let memoryCache = LRUMemoryCache<CacheKey, UIImage>(
+            countLimit: 10,
+            totalCostLimit: 1_000_000
+        )
+        let dataLoader = MockDataLoader(
+            data: Data("network-data".utf8),
+            delayNanoseconds: 100_000_000
+        )
+        let imageDecoder = MockImageDecoder(image: decodedImage)
+        
+        let pipeline = ImagePipeline(
+            memoryCache: memoryCache,
+            diskCache: MockDiskCache(),
+            dataLoader: dataLoader,
+            imageDecoder: imageDecoder
+        )
+        
+        async let first = pipeline.loadImage(request)
+        async let second = pipeline.loadImage(request)
+        async let third = pipeline.loadImage(request)
+        
+        let images = try await [first, second, third]
+        
+        #expect(images[0] === decodedImage)
+        #expect(images[1] === decodedImage)
+        #expect(images[2] === decodedImage)
+        #expect(await dataLoader.loadCount() == 1)
+        #expect(imageDecoder.decodeCount == 1)
+    }
+    
+    @Test("같은 URL이라도 variant가 다르면 서로 다른 in-flight 작업으로 처리된다")
+    func concurrentDifferentVariantsDoNotShareInFlightTask() async throws {
+        let url = URL(string: "https://example.com/image.png")!
+        let smallRequest = ImageRequest(
+            url: url,
+            targetSize: CGSize(width: 80, height: 80),
+            scale: 2
+        )
+        let largeRequest = ImageRequest(
+            url: url,
+            targetSize: CGSize(width: 160, height: 160),
+            scale: 2
+        )
+        let decodedImage = makeImage(size: CGSize(width: 40, height: 40))
+        
+        let memoryCache = LRUMemoryCache<CacheKey, UIImage>(
+            countLimit: 10,
+            totalCostLimit: 1_000_000
+        )
+        let dataLoader = MockDataLoader(
+            data: Data("network-data".utf8),
+            delayNanoseconds: 100_000_000
+        )
+        
+        let pipeline = ImagePipeline(
+            memoryCache: memoryCache,
+            diskCache: MockDiskCache(),
+            dataLoader: dataLoader,
+            imageDecoder: MockImageDecoder(image: decodedImage)
+        )
+        
+        async let first = pipeline.loadImage(smallRequest)
+        async let second = pipeline.loadImage(largeRequest)
+        
+        _ = try await [first, second]
+        
+        #expect(await dataLoader.loadCount() == 2)
+    }
+    
+    @Test("in-flight 작업이 실패하면 다음 요청에서 새 작업을 다시 시작한다")
+    func failedInFlightTaskIsRemovedAndNextRequestCanRetry() async throws {
+        let request = ImageRequest(url: URL(string: "https://example.com/image.png")!)
+        let decodedImage = makeImage(size: CGSize(width: 40, height: 40))
+        let dataLoader = FailingOnceDataLoader(successData: Data("network-data".utf8))
+        
+        let pipeline = ImagePipeline(
+            memoryCache: LRUMemoryCache<CacheKey, UIImage>(
+                countLimit: 10,
+                totalCostLimit: 1_000_000
+            ),
+            diskCache: MockDiskCache(),
+            dataLoader: dataLoader,
+            imageDecoder: MockImageDecoder(image: decodedImage)
+        )
+        
+        do {
+            _ = try await pipeline.loadImage(request)
+            #expect(Bool(false), "Expected URLError.notConnectedToInternet")
+        } catch let error as URLError {
+            #expect(error.code == .notConnectedToInternet)
+        } catch {
+            #expect(Bool(false), "Expected URLError, but received \(error)")
+        }
+        
+        let image = try await pipeline.loadImage(request)
+        
+        #expect(image === decodedImage)
+        #expect(await dataLoader.loadCount() == 2)
+    }
 
     @Test("returnCacheDataDontLoad에서 cache miss이면 cacheMiss를 던진다")
     func returnCacheDataDontLoadThrowsCacheMissWhenCacheIsEmpty() async {
@@ -191,16 +296,49 @@ struct ImagePipelineTests {
 private actor MockDataLoader: DataLoaderType {
     private var count = 0
     private let data: Data
+    private let delayNanoseconds: UInt64?
 
-    init(data: Data = Data("mock-data".utf8)) {
+    init(
+        data: Data = Data("mock-data".utf8),
+        delayNanoseconds: UInt64? = nil
+    ) {
         self.data = data
+        self.delayNanoseconds = delayNanoseconds
     }
 
     func data(url: URL) async throws -> Data {
         count += 1
+        
+        if let delayNanoseconds {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+        
         return data
     }
 
+    func loadCount() -> Int {
+        count
+    }
+}
+
+private actor FailingOnceDataLoader: DataLoaderType {
+    private var count = 0
+    private let successData: Data
+    
+    init(successData: Data) {
+        self.successData = successData
+    }
+    
+    func data(url: URL) async throws -> Data {
+        count += 1
+        
+        if count == 1 {
+            throw URLError(.notConnectedToInternet)
+        }
+        
+        return successData
+    }
+    
     func loadCount() -> Int {
         count
     }
