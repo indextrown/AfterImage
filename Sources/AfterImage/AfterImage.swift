@@ -60,3 +60,22 @@
  */
 
 import UIKit
+
+/// AfterImage의 public entry point입니다.
+///
+/// 외부 사용자는 `ImagePipeline`, `MemoryCache`, `DiskCache`, `DataLoader`, `ImageDecoder`를
+/// 직접 조립하지 않고 이 타입을 통해 이미지를 요청할 수 있습니다.
+//public final class AfterImage {
+//    
+//    /// 기본 설정으로 구성된 공유 인스턴스입니다.
+//    public static let shared = AfterImage()
+//    
+//    private let pipeline: any ImagePipelineType
+//    
+//    /// 테스트나 커스텀 구성을 위해 파이프라인을 직접 주입합니다.
+//    ///
+//    /// - Parameter pipeline: 이미지 요청을 처리할 파이프라인입니다.
+//    public init(pipeline: any ImagePipelineType) {
+//        self.pipeline = pipeline
+//    }
+//}
