@@ -20,13 +20,13 @@ public struct ImageDecoder: ImageDecoderType {
         self.downSampler = downSampler
     }
     
-    public func decoder(
+    public func decode(
         _ data: Data,
         targetSize: CGSize?,
         scale: CGFloat
     ) throws -> UIImage {
         precondition(
-            scale.isInfinite &&
+            scale.isFinite &&
             scale > 0,
             "ImageDecoder scale must be finite and > 0"
         )

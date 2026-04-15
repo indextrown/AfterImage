@@ -27,7 +27,7 @@ public struct ImageDownsampler: Sendable {
         )
         
         precondition(
-            scale.isInfinite &&
+            scale.isFinite &&
             scale > 0,
             "ImageDownsampler scale must be finite and > 0"
         )

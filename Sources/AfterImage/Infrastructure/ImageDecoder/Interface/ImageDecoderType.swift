@@ -18,7 +18,7 @@ public protocol ImageDecoderType: Sendable {
     ///   - scale: 디스플레이 scale입니다.
     /// - Returns: 디코딩된 `UIImage`
     /// - Throws: 이미지 소스 생성 실패, 디코딩 실패
-    func decoder(
+    func decode(
         _ data: Data,
         targetSize: CGSize?,
         scale: CGFloat
