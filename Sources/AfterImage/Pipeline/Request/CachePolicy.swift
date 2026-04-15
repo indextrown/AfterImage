@@ -8,7 +8,7 @@
 import Foundation
 
 /// 이미지 요청에서 캐시를 어떻게 읽고 쓸지 정의하는 정책입니다.
-public enum CachePolicy: Sendable, Equatable {
+public enum CachePolicy: Sendable, Hashable {
     /// 메모리 캐시 -> 디스크 캐시 -> 네트워크 순서로 조회하고
     /// 네트워크에서 받은 결과는 다시 캐시에 저장합니다.
     case useCache

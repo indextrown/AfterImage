@@ -12,17 +12,20 @@ import UIKit
 /// `ImagePipeline`은 하나의 이미지 요청에 대해 다음 순서로 결과를 조회합니다.
 ///
 /// 1. 메모리 캐시 조회
-/// 2. 디스크 캐시 조회
-/// 3. 네트워크 요청
-/// 4. 디코딩 및 후처리(processor 적용)
-/// 5. 캐시 저장
+/// 2. 동일 `CacheKey + CachePolicy`의 진행 중 작업 재사용
+/// 3. 디스크 캐시 조회
+/// 4. 네트워크 요청
+/// 5. 디코딩 및 후처리(processor 적용)
+/// 6. 캐시 저장
 ///
-/// 또한 동일한 `CacheKey`에 대한 동시 요청이 발생하면, 이미 진행 중인 작업을
-/// `inFlightTasks`에서 재사용하여 중복 네트워크 요청을 방지합니다.
+/// 또한 메모리 캐시 miss 이후 동일한 `CacheKey`와 `CachePolicy` 조합의 동시 요청이
+/// 발생하면, 이미 진행 중인 작업을 `inFlightTasks`에서 재사용합니다.
+/// 이를 통해 중복 디스크 조회, 중복 디코딩, 중복 네트워크 요청을 줄입니다.
 ///
 /// ## 동작 개요
 /// - 메모리 캐시에 값이 있으면 즉시 반환합니다.
-/// - 메모리에 없으면 디스크 캐시를 조회합니다.
+/// - 메모리에 없고 같은 `CacheKey + CachePolicy` 작업이 진행 중이면 그 결과를 기다립니다.
+/// - 진행 중인 작업이 없으면 디스크 캐시를 조회합니다.
 /// - 디스크 캐시 데이터가 존재하면 decode 및 processor 적용 후 반환합니다.
 /// - 디스크 데이터가 손상되어 decode에 실패하면, 네트워크 허용 여부에 따라
 ///   디스크 엔트리를 제거하고 네트워크로 fallback 하거나 에러를 그대로 전달합니다.
@@ -55,12 +58,13 @@ public actor ImagePipeline: ImagePipelineType {
     
     /// 현재 진행 중인 이미지 로딩 작업 목록입니다.
     ///
-    /// 같은 `CacheKey`에 대해 동시에 여러 요청이 들어오면 새 작업을 만들지 않고,
-    /// 이미 진행 중인 `Task`를 재사용하여 중복 네트워크 요청과 중복 디코딩을 방지합니다.
+    /// 같은 `CacheKey`와 `CachePolicy` 조합에 대해 동시에 여러 요청이 들어오면
+    /// 새 작업을 만들지 않고, 이미 진행 중인 `Task`를 재사용합니다.
     ///
-    /// 예를 들어 동일한 URL/variant에 대한 요청이 거의 동시에 3번 들어와도
-    /// 실제 네트워크 요청은 1번만 수행되고, 나머지 호출자는 같은 결과를 함께 기다립니다.
-    private var inFlightTasks: [CacheKey: Task<UIImage, Error>] = [:]
+    /// `CachePolicy`를 키에 포함하는 이유는 같은 이미지 variant라도 네트워크 fallback
+    /// 가능 여부가 다를 수 있기 때문입니다. 예를 들어 cache-only 요청이 네트워크 허용
+    /// 요청과 같은 작업을 공유하면 정책 의도와 다른 결과가 나올 수 있습니다.
+    private var inFlightTasks: [InFlightKey: Task<UIImage, Error>] = [:]
     
     /// 새로운 이미지 파이프라인을 생성합니다.
     ///
@@ -86,13 +90,17 @@ public actor ImagePipeline: ImagePipelineType {
     /// 이 메서드는 캐시 정책에 따라 메모리 캐시, 디스크 캐시, 네트워크 순으로 조회하며,
     /// 필요한 경우 디코딩 및 processor 적용을 수행합니다.
     ///
-    /// 동일한 `CacheKey`에 대한 요청이 이미 진행 중이라면 해당 작업을 재사용합니다.
+    /// 동일한 `CacheKey + CachePolicy` 요청이 이미 진행 중이라면 해당 작업을 재사용합니다.
     ///
     /// - Parameter request: 로드할 이미지 요청 정보입니다.
     /// - Returns: 디코딩 및 후처리가 완료된 최종 이미지입니다.
     /// - Throws: 캐시 miss, 디코딩 실패, 네트워크 실패, processor 실패 등의 에러를 던질 수 있습니다.
     public func loadImage(_ request: ImageRequest) async throws -> UIImage {
             let cacheKey = VariantKey(request: request).cacheKey
+            let inFlightKey = InFlightKey(
+                cacheKey: cacheKey,
+                cachePolicy: request.cachePolicy
+            )
             
             // 1. 메모리 캐시 조회
             // 가장 빠른 경로이므로, 정책이 허용한다면 우선적으로 확인합니다.
@@ -101,76 +109,95 @@ public actor ImagePipeline: ImagePipelineType {
                 return image
             }
             
-            // 2. 디스크 캐시 조회
-            // 메모리에 없고 디스크 읽기가 허용된 경우, 디스크에 저장된 원본 데이터를 확인합니다.
-            if request.cachePolicy.allowsDiskRead,
-               let cachedData = await diskCache.data(key: cacheKey.rawValue) {
-                do {
-                    // 디스크에 저장된 원본 데이터를 decode하고,
-                    // 요청에 포함된 processor들을 순서대로 적용합니다.
-                    let image = try decodeAndProcess(cachedData, request: request)
-                    
-                    // 디스크에서 성공적으로 복원한 이미지는 이후 더 빠르게 접근할 수 있도록
-                    // 메모리 캐시에 다시 올려둡니다.
-                    if request.cachePolicy.allowsMemoryWrite {
-                        memoryCache.insertImage(image, key: cacheKey)
-                    }
-                    
-                    return image
-                } catch {
-                    // 디스크 데이터는 존재하지만 decode/process 단계에서 실패한 경우입니다.
-                    // 손상된 데이터이거나, 현재 디코더/processor로 처리할 수 없는 데이터일 수 있습니다.
-                    
-                    if request.cachePolicy.allowsNetworkLoad {
-                        // 네트워크 fallback이 허용된다면,
-                        // 손상된 디스크 엔트리를 제거한 뒤 아래 네트워크 경로로 계속 진행합니다.
-                        try? await diskCache.removeData(key: cacheKey.rawValue)
-                    } else {
-                        // 네트워크 요청이 허용되지 않는 정책이라면
-                        // 더 이상 fallback 경로가 없으므로 에러를 그대로 전달합니다.
-                        throw error
-                    }
-                }
-            }
-            
-            // 3. 네트워크 요청 가능 여부 확인
-            // 캐시에서 결과를 얻지 못했고, 네트워크도 허용되지 않으면 cache miss입니다.
-            guard request.cachePolicy.allowsNetworkLoad else {
-                throw ImagePipelineError.cacheMiss
-            }
-            
-            // 4. in-flight deduplication
-            // 같은 키의 요청이 이미 진행 중이라면 새 작업을 만들지 않고 기존 작업 결과를 기다립니다.
-            if let inFlightTask = inFlightTasks[cacheKey] {
+            // 2. in-flight deduplication
+            // 같은 키와 같은 캐시 정책의 요청이 이미 진행 중이라면 새 작업을 만들지 않고 기존 작업 결과를 기다립니다.
+            if let inFlightTask = inFlightTasks[inFlightKey] {
                 return try await inFlightTask.value
             }
             
-            // 5. 새로운 네트워크 로딩 작업 생성
+            // 3. 메모리 miss 이후의 디스크/네트워크 경로를 하나의 작업으로 묶습니다.
             let task = Task {
-                try await loadFromNetworkAndStoreCaches(
-                    request,
-                    cacheKey: cacheKey
-                )
+                do {
+                    let image = try await loadFromDiskOrNetworkAndStoreCaches(
+                        request,
+                        cacheKey: cacheKey
+                    )
+                    
+                    removeInFlightTask(for: inFlightKey)
+                    return image
+                } catch {
+                    removeInFlightTask(for: inFlightKey)
+                    throw error
+                }
             }
             
             // 진행 중 작업 목록에 먼저 등록해 이후 동일 요청이 재사용할 수 있게 합니다.
-            inFlightTasks[cacheKey] = task
-            
-            do {
-                let image = try await task.value
-                
-                // 작업이 정상적으로 끝났으면 in-flight 목록에서 제거합니다.
-                inFlightTasks[cacheKey] = nil
-                return image
-            } catch {
-                // 실패한 작업도 반드시 목록에서 제거해 다음 요청이 새로 시작될 수 있게 합니다.
-                inFlightTasks[cacheKey] = nil
-                throw error
-            }
+            inFlightTasks[inFlightKey] = task
+            return try await task.value
         }
+    
+    /// 공유 `Task`가 실제로 완료된 뒤 in-flight 목록에서 제거합니다.
+    ///
+    /// 대기 중인 호출자가 취소되더라도 공유 작업 자체가 아직 실행 중이라면
+    /// in-flight 항목이 먼저 제거되지 않도록 cleanup 책임을 task 실행 흐름에 둡니다.
+    private func removeInFlightTask(for inFlightKey: InFlightKey) {
+        inFlightTasks[inFlightKey] = nil
+    }
 }
 
 private extension ImagePipeline {
+    
+    struct InFlightKey: Hashable {
+        /// 같은 이미지 variant라도 캐시 정책이 다르면 fallback 가능 여부가 달라지므로
+        /// 별도 작업으로 취급합니다.
+        let cacheKey: CacheKey
+        let cachePolicy: CachePolicy
+    }
+    
+    /// 메모리 캐시 miss 이후의 디스크 캐시 조회와 네트워크 fallback을 처리합니다.
+    ///
+    /// 이 메서드 전체가 in-flight task에 들어가므로, 동일 `CacheKey + CachePolicy`
+    /// 요청의 중복 디스크 조회, 중복 디코딩, 중복 네트워크 요청을 함께 줄일 수 있습니다.
+    func loadFromDiskOrNetworkAndStoreCaches(
+        _ request: ImageRequest,
+        cacheKey: CacheKey
+    ) async throws -> UIImage {
+        // 디스크 캐시 조회
+        if request.cachePolicy.allowsDiskRead,
+           let cachedData = await diskCache.data(key: cacheKey.rawValue) {
+            let decodedImage: UIImage?
+            
+            do {
+                decodedImage = try decode(cachedData, request: request)
+            } catch {
+                if request.cachePolicy.allowsNetworkLoad {
+                    try? await diskCache.removeData(key: cacheKey.rawValue)
+                    decodedImage = nil
+                } else {
+                    throw error
+                }
+            }
+            
+            if let decodedImage {
+                let image = try process(decodedImage, request: request)
+                
+                if request.cachePolicy.allowsMemoryWrite {
+                    memoryCache.insertImage(image, key: cacheKey)
+                }
+                
+                return image
+            }
+        }
+        
+        guard request.cachePolicy.allowsNetworkLoad else {
+            throw ImagePipelineError.cacheMiss
+        }
+        
+        return try await loadFromNetworkAndStoreCaches(
+            request,
+            cacheKey: cacheKey
+        )
+    }
     
     /// 네트워크에서 원본 데이터를 로드하고, 디코딩 및 후처리 후 캐시에 저장합니다.
     ///
@@ -220,12 +247,28 @@ private extension ImagePipeline {
         _ data: Data,
         request: ImageRequest
     ) throws -> UIImage {
-        // 원본 데이터를 요청 크기/배율 정보에 맞게 UIImage로 변환합니다.
-        var image = try imageDecoder.decode(
+        let decodedImage = try decode(data, request: request)
+        return try process(decodedImage, request: request)
+    }
+    
+    /// 원본 데이터를 요청 크기/배율 정보에 맞게 `UIImage`로 변환합니다.
+    func decode(
+        _ data: Data,
+        request: ImageRequest
+    ) throws -> UIImage {
+        try imageDecoder.decode(
             data,
             targetSize: request.targetSize,
             scale: request.scale
         )
+    }
+    
+    /// 디코딩된 이미지에 요청의 processor를 순서대로 적용합니다.
+    func process(
+        _ decodedImage: UIImage,
+        request: ImageRequest
+    ) throws -> UIImage {
+        var image = decodedImage
         
         // 요청에 포함된 processor를 순서대로 적용합니다.
         // processor 순서는 최종 결과에 영향을 줄 수 있으므로 입력 순서를 유지합니다.
