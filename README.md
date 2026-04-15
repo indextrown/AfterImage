@@ -35,8 +35,8 @@ ImageRequest
 - [x] `CachePolicy` 구현
 - [x] `ImageProcessor` 인터페이스 구현
 - [x] `CacheKey` / `VariantKey` 구현
-- [ ] `DataLoaderType` 인터페이스 구현
-- [ ] `URLSessionDataLoader` 구현
+- [x] `DataLoaderType` 인터페이스 구현
+- [x] `URLSessionDataLoader` 구현
 - [ ] `ImageDecoderType` 인터페이스 구현
 - [ ] `ImageDecoder` + downsampling 구현
 - [ ] `ImagePipelineType` 인터페이스 구현
