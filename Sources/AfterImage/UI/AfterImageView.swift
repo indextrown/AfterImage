@@ -40,7 +40,7 @@ public struct AfterImageView<
     public init(
         url: URL,
         targetSize: CGSize? = nil,
-        scale: CGFloat = UIScreen.main.scale,
+        scale: CGFloat = 1,
         cachePolicy: CachePolicy = .useCache,
         processors: [any ImageProcessor] = [],
         afterImage: AfterImage = .shared,
