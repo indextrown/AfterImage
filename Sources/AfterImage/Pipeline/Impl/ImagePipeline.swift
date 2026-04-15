@@ -32,6 +32,11 @@ public actor ImagePipeline: ImagePipelineType {
     public func loadImage(_ request: ImageRequest) async throws -> UIImage {
         let cacheKey = VariantKey(request: request).cacheKey
         
+        if request.cachePolicy.allowsMemoryRead,
+           let image = memoryCache.value(key: cacheKey) {
+            return image
+        }
+        
         if request.cachePolicy.allowsDiskRead,
            let data = await diskCache.data(key: cacheKey.rawValue) {
             let image = try decodeAndProcess(data, request: request)
