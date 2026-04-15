@@ -65,17 +65,82 @@ import UIKit
 ///
 /// 외부 사용자는 `ImagePipeline`, `MemoryCache`, `DiskCache`, `DataLoader`, `ImageDecoder`를
 /// 직접 조립하지 않고 이 타입을 통해 이미지를 요청할 수 있습니다.
-//public final class AfterImage {
-//    
-//    /// 기본 설정으로 구성된 공유 인스턴스입니다.
-//    public static let shared = AfterImage()
-//    
-//    private let pipeline: any ImagePipelineType
-//    
-//    /// 테스트나 커스텀 구성을 위해 파이프라인을 직접 주입합니다.
-//    ///
-//    /// - Parameter pipeline: 이미지 요청을 처리할 파이프라인입니다.
-//    public init(pipeline: any ImagePipelineType) {
-//        self.pipeline = pipeline
-//    }
-//}
+public final class AfterImage {
+    
+    /// 기본 설정으로 구성된 공유 인스턴스입니다.
+    public static let shared = AfterImage()
+    
+    private let pipeline: any ImagePipelineType
+    
+    /// 테스트나 커스텀 구성을 위해 파이프라인을 직접 주입합니다.
+    ///
+    /// - Parameter pipeline: 이미지 요청을 처리할 파이프라인입니다.
+    public init(pipeline: any ImagePipelineType) {
+        self.pipeline = pipeline
+    }
+    
+    /// configuration을 기반으로 기본 파이프라인을 구성합니다.
+    ///
+    /// - Parameter configuration: 메모리/디스크 캐시 설정입니다.
+    public convenience init(configuration: AfterImageConfiguration) {
+        let memoryCache = LRUMemoryCache<CacheKey, UIImage>(
+            configuration: configuration.memoryCacheConfiguration
+        )
+        
+        let diskCache = DiskCache(
+            configuration: configuration.diskCacheConfiguration
+        )
+        
+        
+        let pipeline = ImagePipeline(
+            memoryCache: memoryCache,
+            diskCache: diskCache,
+            dataLoader: URLSessionDataLoader(),
+            imageDecoder: ImageDecoder()
+        )
+        
+        self.init(pipeline: pipeline)
+    }
+    
+    /// 기본 configuration으로 AfterImage를 생성합니다.
+    public convenience init() {
+        self.init(configuration: .default)
+    }
+    
+    /// `ImageRequest`를 기반으로 이미지를 로드합니다.
+    ///
+    /// - Parameter request: 이미지 로딩 요청입니다.
+    /// - Returns: 디코딩과 후처리가 완료된 이미지입니다.
+    public func image(for request: ImageRequest) async throws -> UIImage {
+        try await pipeline.loadImage(request)
+    }
+    
+    /// URL 기반의 간단한 이미지 로딩 API입니다.
+    ///
+    /// 내부적으로 `ImageRequest`를 만들어 파이프라인에 전달합니다.
+    public func image(
+        url: URL,
+        targetSize: CGSize? = nil,
+        scale: CGFloat? = nil,
+        cachePolicy: CachePolicy = .useCache,
+        processors: [any ImageProcessor] = []
+    ) async throws -> UIImage {
+        let resolvedScale = if let scale {
+            scale
+        } else {
+            await MainActor.run {
+                UIScreen.main.scale
+            }
+        }
+        
+        let request = ImageRequest(
+            url: url,
+            targetSize: targetSize,
+            scale: resolvedScale,
+            cachePolicy: cachePolicy,
+            processors: processors
+        )
+        
+        return try await image(for: request)
+    }
+}
