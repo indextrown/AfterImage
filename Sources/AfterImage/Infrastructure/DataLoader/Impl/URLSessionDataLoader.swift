@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// `URLSession`을 사용해 이미지 원본 데이터를 로드하는 기본 구현체입니다.
 public struct URLSessionDataLoader: DataLoaderType {
     
     private let session: URLSession
