@@ -39,10 +39,10 @@ ImageRequest
 - [x] `URLSessionDataLoader` 구현
 - [x] `ImageDecoderType` 인터페이스 구현
 - [x] `ImageDecoder` + downsampling 구현
-- [ ] `ImagePipelineType` 인터페이스 구현
-- [ ] `ImagePipeline` actor 구현
+- [x] `ImagePipelineType` 인터페이스 구현
+- [x] `ImagePipeline` actor 구현
 - [ ] 중복 요청 방지(in-flight dedupe) 구현
-- [ ] ImagePipeline 테스트 작성
+- [x] ImagePipeline 테스트 작성
 - [ ] SwiftUI 어댑터 구현
 - [ ] UIKit 어댑터 구현
 - [ ] README 사용 예제 정리
