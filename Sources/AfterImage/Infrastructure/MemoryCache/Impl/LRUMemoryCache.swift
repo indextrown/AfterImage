@@ -237,27 +237,6 @@ public extension LRUMemoryCache where Key == URL, Value == UIImage {
     /// UIImage의 메모리 사용량을 바이트 단위로 계산합니다.
     ///
     /// - Note:
-    /// (Legacy)
-    ///   - `UIImage.size`는 point 단위이므로, 실제 픽셀 수를 구하기 위해 `scale`을 곱합니다.
-    ///   - 픽셀 수 = (width * scale) × (height * scale)
-    ///   - 일반적으로 디코딩된 이미지는 RGBA(4byte per pixel) 포맷을 사용한다고 가정합니다.
-    ///   - 실제 메모리 사용량은 이미지 포맷에 따라 다를 수 있습니다.
-    ///   - 최종 cost = 픽셀 수 × 4byte (근사값)
-    ///
-    /// - Example:
-    ///   - size: 100 x 100, scale: 3
-    ///   - → 실제 픽셀: 300 x 300
-    ///   - → cost: 300 × 300 × 4 = 360,000 bytes
-    ///
-    /// - Parameters:
-    ///   - image: 캐시에 저장할 UIImage
-    ///   - key: 이미지 식별을 위한 URL 키
-    ///
-    
-    
-    /// UIImage의 메모리 사용량을 바이트 단위로 계산합니다.
-    ///
-    /// - Note:
     ///   - 실제 메모리 사용량은 `cgImage`의 픽셀 크기를 기준으로 계산합니다.
     ///   - `cgImage.width`와 `cgImage.height`는 실제 픽셀 수를 나타냅니다.
     ///   - 일반적으로 디코딩된 이미지는 RGBA(4 byte per pixel) 포맷을 사용한다고 가정합니다.
@@ -275,6 +254,7 @@ public extension LRUMemoryCache where Key == URL, Value == UIImage {
     /// - Parameters:
     ///   - image: 캐시에 저장할 UIImage
     ///   - key: 이미지 식별을 위한 URL 키
+    @available(*, deprecated, message: "Use insertImage(_ image: UIImage, key: Key) instead.")
     func insertImage(_ image: UIImage, key: URL) {
         
         guard let cgimage = image.cgImage else { return }
@@ -283,6 +263,33 @@ public extension LRUMemoryCache where Key == URL, Value == UIImage {
         let height = cgimage.height
         let cost = width * height * 4
         
+        insert(value: image, key: key, cost: cost)
+    }
+}
+
+// MARK: - Image
+public extension LRUMemoryCache where Value == UIImage {
+
+    /// UIImage의 메모리 사용량을 바이트 단위로 계산해 캐시에 저장합니다.
+    ///
+    /// - Note:
+    ///   - 실제 메모리 사용량은 `cgImage`의 픽셀 크기를 기준으로 계산합니다.
+    ///   - `cgImage.width`와 `cgImage.height`는 실제 픽셀 수를 나타냅니다.
+    ///   - 일반적으로 디코딩된 이미지는 RGBA(4 byte per pixel) 포맷을 사용한다고 가정합니다.
+    ///   - 최종 cost = width × height × 4 (근사값)
+    ///
+    /// - Parameters:
+    ///   - image: 캐시에 저장할 UIImage
+    ///   - key: 이미지 식별을 위한 캐시 키
+    func insertImage(_ image: UIImage, key: Key) {
+        guard let cgImage = image.cgImage else {
+            return
+        }
+
+        let width = cgImage.width
+        let height = cgImage.height
+        let cost = width * height * 4
+
         insert(value: image, key: key, cost: cost)
     }
 }
