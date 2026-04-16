@@ -264,6 +264,13 @@ Infrastructure Layer
 
 ## 계층별 역할
 
+| 계층 | 주요 타입 | 역할 |
+| --- | --- | --- |
+| Public Entry Point | `AfterImage`, `AfterImageConfiguration`, `MemoryCacheConfiguration`, `DiskCacheConfiguration` | 외부 API를 제공하고 내부 파이프라인 조립과 캐시 설정 세부 사항을 숨깁니다. |
+| UI Layer | `AfterImageView`, `UIImageView+AfterImage`, `ImageLoadingState` | SwiftUI와 UIKit에서 원격 이미지 로딩을 쉽게 사용할 수 있도록 연결합니다. |
+| Pipeline Layer | `ImageRequest`, `CachePolicy`, `CacheKey`, `VariantKey`, `ImagePipeline` | 이미지 요청을 캐시, 네트워크, 디코더, 후처리 흐름으로 연결합니다. |
+| Infrastructure Layer | `LRUMemoryCache`, `DiskCache`, `URLSessionDataLoader`, `ImageDecoder`, `ImageDownsampler`, `ImageProcessor` | 실제 캐시 저장소, 네트워크 IO, 이미지 디코딩, 후처리 구현을 담당합니다. |
+
 ### Public Entry Point
 
 외부 사용자가 직접 접하는 facade 계층입니다.
