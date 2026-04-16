@@ -14,12 +14,13 @@ public struct AfterImageView<
     Failure: View
 >: View {
     
-    private let request: ImageRequest
+    private let makeRequest: (CGFloat) -> ImageRequest
     private let afterImage: AfterImage
     private let content: (SwiftUI.Image) -> Content
     private let placeholder: () -> Placeholder
     private let failure: (Error) -> Failure
     
+    @Environment(\.displayScale) private var displayScale
     @State private var state: ImageLoadingState = .idle
     @State private var task: Task<Void, Never>?
     
@@ -30,7 +31,7 @@ public struct AfterImageView<
         @ViewBuilder placeholder: @escaping () -> Placeholder,
         @ViewBuilder failure: @escaping (Error) -> Failure
     ) {
-        self.request = request
+        self.makeRequest = { _ in request }
         self.afterImage = afterImage
         self.content = content
         self.placeholder = placeholder
@@ -40,7 +41,7 @@ public struct AfterImageView<
     public init(
         url: URL,
         targetSize: CGSize? = nil,
-        scale: CGFloat = 1,
+        scale: CGFloat? = nil,
         cachePolicy: CachePolicy = .useCache,
         processors: [any ImageProcessor] = [],
         afterImage: AfterImage = .shared,
@@ -48,21 +49,19 @@ public struct AfterImageView<
         @ViewBuilder placeholder: @escaping () -> Placeholder,
         @ViewBuilder failure: @escaping (Error) -> Failure
     ) {
-        let request = ImageRequest(
-            url: url,
-            targetSize: targetSize,
-            scale: scale,
-            cachePolicy: cachePolicy,
-            processors: processors
-        )
-        
-        self.init(
-            request: request,
-            afterImage: afterImage,
-            content: content,
-            placeholder: placeholder,
-            failure: failure
-        )
+        self.makeRequest = { displayScale in
+            ImageRequest(
+                url: url,
+                targetSize: targetSize,
+                scale: scale ?? displayScale,
+                cachePolicy: cachePolicy,
+                processors: processors
+            )
+        }
+        self.afterImage = afterImage
+        self.content = content
+        self.placeholder = placeholder
+        self.failure = failure
     }
     
     public var body: some View {
@@ -93,7 +92,12 @@ public struct AfterImageView<
     private func loadIfNeeded() {
         guard task == nil else { return }
         
+        if case .success = state {
+            return
+        }
+        
         state = .loading
+        let request = makeRequest(displayScale)
         
         task = Task {
             do {

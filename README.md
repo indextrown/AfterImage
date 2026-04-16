@@ -7,8 +7,13 @@
 ## 목차
 
 - [파이프라인](#pipeline)
+- [Requirements](#requirements)
 - [설치](#installation)
 - [기본 사용](#basic-usage)
+- [Cache Policy](#cache-policy)
+- [Cache Key / Variant](#cache-key-variant)
+- [캐시 삭제](#clear-cache)
+- [Examples](#examples)
 - [계층 구조](#architecture)
 - [계층별 역할](#layer-roles)
 - [현재 상태](#current-status)
@@ -35,6 +40,14 @@ ImageRequest
   -> MemoryCache + DiskCache 저장
   -> UIImage 반환
 ```
+
+<a id="requirements"></a>
+
+## Requirements
+
+- iOS 13.0+
+- Swift 5.9+
+- Xcode 15.0+
 
 <a id="installation"></a>
 
@@ -64,25 +77,15 @@ dependencies: [
 ]
 ```
 
-target에는 `AfterImage` product를 추가합니다.
-
-```swift
-targets: [
-    .target(
-        name: "YourApp",
-        dependencies: [
-            .product(
-                name: "AfterImage",
-                package: "AfterImage"
-            )
-        ]
-    )
-]
-```
-
 <a id="basic-usage"></a>
 
 ## 기본 사용
+
+사용할 파일에서 `AfterImage`를 import합니다.
+
+```swift
+import AfterImage
+```
 
 ### SwiftUI
 
@@ -99,6 +102,8 @@ AfterImageView(
 } failure: { _ in
     Image(systemName: "photo")
 }
+.frame(width: 120, height: 120)
+.clipped()
 ```
 
 ### UIKit
@@ -140,6 +145,90 @@ let configuration = AfterImageConfiguration(
 
 AfterImage.shared.configure(configuration)
 ```
+
+<a id="cache-policy"></a>
+
+## Cache Policy
+
+`CachePolicy`는 메모리 캐시, 디스크 캐시, 네트워크를 어떤 순서와 범위로 사용할지 결정합니다.
+
+- `.useCache`
+  - 메모리 캐시 -> 디스크 캐시 -> 네트워크 순서로 조회합니다.
+  - 네트워크에서 받은 원본 데이터는 디스크 캐시에 저장하고, 디코딩된 이미지는 메모리 캐시에 저장합니다.
+
+- `.reloadIgnoringCache`
+  - 기존 메모리/디스크 캐시를 읽지 않고 네트워크에서 새로 가져옵니다.
+  - 네트워크 결과는 다시 메모리/디스크 캐시에 저장합니다.
+
+- `.returnCacheDataDontLoad`
+  - 메모리/디스크 캐시만 조회합니다.
+  - 캐시 miss가 발생해도 네트워크 요청을 하지 않습니다.
+
+- `.memoryOnly`
+  - 메모리 캐시만 읽고 씁니다.
+  - 메모리 캐시 miss 시 네트워크 로드는 허용하지만 디스크 캐시는 사용하지 않습니다.
+
+- `.diskOnly`
+  - 디스크 캐시만 읽고 씁니다.
+  - 디스크 캐시 miss 시 네트워크 로드는 허용하지만 메모리 캐시는 사용하지 않습니다.
+
+```swift
+let image = try await AfterImage.shared.image(
+    url: imageURL,
+    targetSize: CGSize(width: 160, height: 160),
+    cachePolicy: .returnCacheDataDontLoad
+)
+```
+
+<a id="cache-key-variant"></a>
+
+## Cache Key / Variant
+
+AfterImage는 URL만으로 캐시를 구분하지 않습니다.
+
+같은 URL이라도 `targetSize`, `scale`, `processor identifier`가 다르면 서로 다른 이미지 variant로 보고 별도 cache key를 생성합니다. 이렇게 해야 작은 썸네일과 큰 상세 이미지가 같은 URL을 쓰더라도 서로 다른 디코딩 결과를 안전하게 캐시할 수 있습니다.
+
+```swift
+let thumbnailRequest = ImageRequest(
+    url: imageURL,
+    targetSize: CGSize(width: 80, height: 80),
+    scale: 2
+)
+
+let detailRequest = ImageRequest(
+    url: imageURL,
+    targetSize: CGSize(width: 320, height: 320),
+    scale: 2
+)
+```
+
+위 두 요청은 같은 URL을 사용하지만, target size가 다르므로 서로 다른 cache key를 가집니다.
+
+<a id="clear-cache"></a>
+
+## 캐시 삭제
+
+`AfterImage.shared.clearCache()`는 현재 shared 파이프라인이 보유한 메모리 캐시와 디스크 캐시를 모두 비웁니다.
+
+```swift
+try await AfterImage.shared.clearCache()
+```
+
+이미 화면에 표시된 이미지는 캐시 삭제만으로 자동으로 사라지지 않습니다. 화면을 다시 로드하려면 SwiftUI에서는 view identity를 갱신하거나, UIKit에서는 다시 `setAfterImage(...)`를 호출해야 합니다.
+
+<a id="examples"></a>
+
+## Examples
+
+- `Examples/SampleApp`
+  - SwiftUI 사용법, cache policy 버튼, 전역 configuration, 캐시 삭제 예제를 포함합니다.
+
+- `Examples/SimpleListApp`
+  - 가장 단순한 SwiftUI 이미지 리스트 예제입니다.
+
+- `Examples/SampleListApp`
+  - UIKit `UIImageView` adapter를 SwiftUI 앱 안에서 확인하는 예제입니다.
+  - `UIViewController.toSwiftUI()`를 통해 UIKit list 화면을 SwiftUI destination으로 렌더링합니다.
 
 <a id="architecture"></a>
 
