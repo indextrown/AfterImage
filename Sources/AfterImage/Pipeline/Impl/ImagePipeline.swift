@@ -136,6 +136,15 @@ public actor ImagePipeline: ImagePipelineType {
             return try await task.value
         }
     
+    /// 현재 파이프라인의 메모리 캐시와 디스크 캐시를 모두 비웁니다.
+    ///
+    /// 진행 중인 요청은 취소하지 않습니다. 삭제 이후 새로 들어오는 요청은
+    /// 비워진 캐시 상태에서 다시 메모리, 디스크, 네트워크 순서로 로드합니다.
+    public func clearCache() async throws {
+        memoryCache.removeAll()
+        try await diskCache.removeAll()
+    }
+    
     /// 공유 `Task`가 실제로 완료된 뒤 in-flight 목록에서 제거합니다.
     ///
     /// 대기 중인 호출자가 취소되더라도 공유 작업 자체가 아직 실행 중이라면

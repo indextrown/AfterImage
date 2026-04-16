@@ -18,4 +18,9 @@ public protocol ImagePipelineType: Sendable {
     /// - Returns: 캐시 또는 네트워크/디코딩 과정을 거쳐 얻은 `UIImage`
     /// - Throws: 캐시 miss, 네트워크 실패, 디코딩 실패, 디스크 캐시 실패 등
     func loadImage(_ request: ImageRequest) async throws -> UIImage
+    
+    /// 파이프라인이 보유한 메모리 캐시와 디스크 캐시를 모두 비웁니다.
+    ///
+    /// - Throws: 디스크 캐시 삭제 중 오류가 발생할 수 있습니다.
+    func clearCache() async throws
 }
